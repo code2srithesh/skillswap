@@ -10,6 +10,7 @@ import '../../swaps/screens/swaps_screen.dart';
 import '../../../core/theme.dart';
 import '../../../core/theme_provider.dart';
 import 'edit_profile_screen.dart';
+import 'developer_info_screen.dart';
 import '../../home/screens/my_posts_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -401,7 +402,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 24),
 
-              // 4. LOGOUT BUTTON
+              // 4. ABOUT DEVELOPER
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DeveloperInfoScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.info_rounded,
+                    color: AppTheme.primaryColor,
+                  ),
+                  label: Text(
+                    "About Developer",
+                    style: TextStyle(color: AppTheme.primaryColor),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: BorderSide(color: AppTheme.primaryColor),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 5. LOGOUT BUTTON
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
