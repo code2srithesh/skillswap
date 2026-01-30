@@ -48,415 +48,436 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final role = data?['role'] ?? 'Unknown Role';
         final photoUrl = data?['photoUrl'];
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              // 1. HEADER (Profile Pic)
-              Center(
-                child: Hero(
-                  tag: 'profile_pic',
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundColor: const Color(0xFF6C63FF),
-                    // LOGIC: Check if it's a Base64 text string
-                    backgroundImage:
-                        (photoUrl != null &&
-                            photoUrl.toString().startsWith('data:'))
-                        ? MemoryImage(
-                            base64Decode(photoUrl.toString().split(',')[1]),
-                          )
-                        : null,
-                    child: (photoUrl == null || photoUrl.toString().isEmpty)
-                        ? Text(
-                            name.isNotEmpty ? name[0].toUpperCase() : "?",
-                            style: const TextStyle(
-                              fontSize: 32,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : null,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // NAME AND EDIT BUTTON ROW
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Column(
+                  // 1. HEADER (Profile Pic)
+                  Hero(
+                    tag: 'profile_pic',
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: const Color(0xFF6C63FF),
+                      // LOGIC: Check if it's a Base64 text string
+                      backgroundImage:
+                          (photoUrl != null &&
+                              photoUrl.toString().startsWith('data:'))
+                          ? MemoryImage(
+                              base64Decode(photoUrl.toString().split(',')[1]),
+                            )
+                          : null,
+                      child: (photoUrl == null || photoUrl.toString().isEmpty)
+                          ? Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : "?",
+                              style: const TextStyle(
+                                fontSize: 32,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // NAME AND EDIT BUTTON ROW
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '@$username',
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Text(
-                        role,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // THE EDIT BUTTON
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Color(0xFF6C63FF)),
-                    onPressed: () {
-                      if (data != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                EditProfileScreen(userData: data),
-                          ),
-                        ).then((_) {
-                          // Optional: formatting/refresh logic could go here
-                        });
-                      }
-                    },
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 32),
-
-              // My Posts Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const MyPostsScreen(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.post_add_rounded),
-                  label: Text(
-                    'My Posts',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Messages Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ConversationsScreen(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.chat_rounded),
-                  label: Text(
-                    'Messages',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.accentColor,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // SWAP REQUESTS SECTION
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Swap Requests",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('requests')
-                    .where(
-                      'receiverUid',
-                      isEqualTo: FirebaseAuth.instance.currentUser?.uid,
-                    )
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                        horizontal: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.shade200),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Column(
                         children: [
                           Text(
-                            "No swap requests yet",
-                            style: TextStyle(
-                              color: Colors.blue.shade700,
+                            name,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '@$username',
+                            style: const TextStyle(
+                              color: Colors.grey,
                               fontSize: 14,
                             ),
                           ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const SwapsScreen(),
-                                ),
-                              );
-                            },
-                            child: const Text('My Swaps'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final requests = snapshot.data!.docs;
-
-                  // Count by status
-                  int pending = 0;
-                  int accepted = 0;
-                  int rejected = 0;
-                  int completed = 0;
-
-                  for (var doc in requests) {
-                    final status = doc['status'] ?? 'pending';
-                    if (status == 'pending') {
-                      pending++;
-                    } else if (status == 'accepted') {
-                      accepted++;
-                    } else if (status == 'rejected') {
-                      rejected++;
-                    } else if (status == 'completed') {
-                      completed++;
-                    }
-                  }
-
-                  return Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildStatusCard(
-                              label: 'Pending',
-                              count: pending,
-                              color: Colors.orange,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildStatusCard(
-                              label: 'Accepted',
-                              count: accepted,
-                              color: Colors.green,
+                          Text(
+                            role,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildStatusCard(
-                              label: 'Rejected',
-                              count: rejected,
-                              color: Colors.red,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildStatusCard(
-                              label: 'Completed',
-                              count: completed,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.swap_horiz_rounded),
-                          label: const Text('Manage My Swaps'),
-                          onPressed: () {
+                      // THE EDIT BUTTON
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Color(0xFF6C63FF)),
+                        onPressed: () {
+                          if (data != null) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const SwapsScreen(),
+                                builder: (context) =>
+                                    EditProfileScreen(userData: data),
                               ),
-                            );
-                          },
-                        ),
+                            ).then((_) {
+                              // Optional: formatting/refresh logic could go here
+                            });
+                          }
+                        },
                       ),
                     ],
-                  );
-                },
-              ),
+                  ),
 
-              const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-              // 2. STATS ROW
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildStat("0", "Swaps", Colors.blue),
-                    _buildContainerDivider(),
-                    _buildStat("5.0", "Rating", Colors.orange),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // 3. THEME SETTINGS
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Theme.of(context).dividerColor),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Icons.dark_mode
-                              : Icons.light_mode,
-                          color: Theme.of(context).primaryColor,
+                  // My Posts Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MyPostsScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.post_add_rounded),
+                      label: Text(
+                        'My Posts',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(width: 12),
-                        Text(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? "Dark Mode"
-                              : "Light Mode",
-                          style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Messages Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ConversationsScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.chat_rounded),
+                      label: Text(
+                        'Messages',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentColor,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // SWAP REQUESTS SECTION
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Swap Requests",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('requests')
+                        .where(
+                          'receiverUid',
+                          isEqualTo: FirebaseAuth.instance.currentUser?.uid,
+                        )
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                            horizontal: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.shade200),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "No swap requests yet",
+                                style: TextStyle(
+                                  color: Colors.blue.shade700,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const SwapsScreen(),
+                                    ),
+                                  );
+                                },
+                                child: const Text('My Swaps'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final requests = snapshot.data!.docs;
+
+                      // Count by status
+                      int pending = 0;
+                      int accepted = 0;
+                      int rejected = 0;
+                      int completed = 0;
+
+                      for (var doc in requests) {
+                        final status = doc['status'] ?? 'pending';
+                        if (status == 'pending') {
+                          pending++;
+                        } else if (status == 'accepted') {
+                          accepted++;
+                        } else if (status == 'rejected') {
+                          rejected++;
+                        } else if (status == 'completed') {
+                          completed++;
+                        }
+                      }
+
+                      return Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildStatusCard(
+                                  label: 'Pending',
+                                  count: pending,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildStatusCard(
+                                  label: 'Accepted',
+                                  count: accepted,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildStatusCard(
+                                  label: 'Rejected',
+                                  count: rejected,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildStatusCard(
+                                  label: 'Completed',
+                                  count: completed,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.swap_horiz_rounded),
+                              label: const Text('Manage My Swaps'),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const SwapsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // 3. THEME SETTINGS
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Icons.dark_mode
+                                  : Icons.light_mode,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? "Dark Mode"
+                                  : "Light Mode",
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                          ],
+                        ),
+                        Switch(
+                          value: Provider.of<ThemeProvider>(context).isDarkMode,
+                          onChanged: (_) {
+                            Provider.of<ThemeProvider>(
+                              context,
+                              listen: false,
+                            ).toggleTheme();
+                          },
+                          activeColor: Theme.of(context).primaryColor,
                         ),
                       ],
                     ),
-                    Switch(
-                      value: Provider.of<ThemeProvider>(context).isDarkMode,
-                      onChanged: (_) {
-                        Provider.of<ThemeProvider>(
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // 4. ABOUT APP
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
                           context,
-                          listen: false,
-                        ).toggleTheme();
+                          MaterialPageRoute(
+                            builder: (_) => const DeveloperInfoScreen(),
+                          ),
+                        );
                       },
-                      activeColor: Theme.of(context).primaryColor,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // 4. ABOUT DEVELOPER
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const DeveloperInfoScreen(),
+                      icon: const Icon(
+                        Icons.info_rounded,
+                        color: AppTheme.primaryColor,
                       ),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.info_rounded,
-                    color: AppTheme.primaryColor,
+                      label: Text(
+                        "About This App",
+                        style: TextStyle(color: AppTheme.primaryColor),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: AppTheme.primaryColor),
+                      ),
+                    ),
                   ),
-                  label: Text(
-                    "About Developer",
-                    style: TextStyle(color: AppTheme.primaryColor),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: BorderSide(color: AppTheme.primaryColor),
-                  ),
-                ),
-              ),
 
-              const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-              // 5. LOGOUT BUTTON
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    await AuthService().signOut();
-                    if (context.mounted) {
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        '/login',
-                        (route) => false,
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.logout, color: Colors.red),
-                  label: const Text(
-                    "Log Out",
-                    style: TextStyle(color: Colors.red),
+                  // 5. LOGOUT BUTTON
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        await AuthService().signOut();
+                        if (context.mounted) {
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/login',
+                            (route) => false,
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.logout, color: Colors.red),
+                      label: const Text(
+                        "Log Out",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(color: Colors.red),
+                      ),
+                    ),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: const BorderSide(color: Colors.red),
+
+                  const SizedBox(height: 48),
+
+                  // DEVELOPER CREDIT
+                  Column(
+                    children: [
+                      const Text(
+                        "Designed & Developed by",
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 10,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.code, size: 14, color: Colors.grey),
+                          SizedBox(width: 4),
+                          Text(
+                            "Sritheshwar Rachakonda",
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        "v1.0.0 • 2026",
+                        style: TextStyle(color: Colors.grey, fontSize: 10),
+                      ),
+                    ],
                   ),
-                ),
+
+                  const SizedBox(height: 24),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },

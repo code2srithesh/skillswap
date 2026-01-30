@@ -28,6 +28,38 @@ class _SignupScreenState extends State<SignupScreen> {
   String? _nameError;
   String? _roleError;
 
+  @override
+  void initState() {
+    super.initState();
+    // Add listener to auto-complete email domain
+    _emailController.addListener(_autoCompleteEmail);
+  }
+
+  void _autoCompleteEmail() {
+    String text = _emailController.text;
+    // Only auto-complete if @ is typed and there's text before it
+    if (text.contains('@') && !text.endsWith('@vitapstudent.ac.in')) {
+      String localPart = text.split('@')[0];
+      if (localPart.isNotEmpty) {
+        _emailController.removeListener(_autoCompleteEmail);
+        _emailController.text = '$localPart@vitapstudent.ac.in';
+        _emailController.selection = TextSelection.collapsed(
+          offset: localPart.length,
+        );
+        _emailController.addListener(_autoCompleteEmail);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _roleController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   void _validateAndSignup() async {
     // Clear previous errors
     setState(() {
@@ -184,7 +216,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
             // Email Field
             Text(
-              'VIT Email Address',
+              'VIT-AP Email Address',
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
@@ -275,14 +307,5 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _roleController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 }

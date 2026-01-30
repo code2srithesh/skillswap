@@ -18,6 +18,35 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _emailSent = false;
   String? _emailError;
 
+  @override
+  void initState() {
+    super.initState();
+    // Add listener to auto-complete email domain
+    _emailController.addListener(_autoCompleteEmail);
+  }
+
+  void _autoCompleteEmail() {
+    String text = _emailController.text;
+    // Only auto-complete if @ is typed and there's text before it
+    if (text.contains('@') && !text.endsWith('@vitapstudent.ac.in')) {
+      String localPart = text.split('@')[0];
+      if (localPart.isNotEmpty) {
+        _emailController.removeListener(_autoCompleteEmail);
+        _emailController.text = '$localPart@vitapstudent.ac.in';
+        _emailController.selection = TextSelection.collapsed(
+          offset: localPart.length,
+        );
+        _emailController.addListener(_autoCompleteEmail);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
   void _handleForgotPassword() async {
     // Clear previous error
     setState(() => _emailError = null);
@@ -113,7 +142,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 Text(
                   _emailSent
                       ? "We've sent a password reset link to your email. Click the link to set a new password."
-                      : "Enter your VIT email address and we'll send you a link to reset your password.",
+                      : "Enter your VIT-AP email address and we'll send you a link to reset your password.",
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                     fontSize: 14,
@@ -133,7 +162,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     controller: _emailController,
                     enabled: !_isLoading,
                     decoration: InputDecoration(
-                      labelText: "Enter your VIT email",
+                      labelText: "Enter your VIT-AP email",
                       prefixIcon: const Icon(Icons.email_outlined),
                       errorText: _emailError,
                       errorStyle: GoogleFonts.inter(

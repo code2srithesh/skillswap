@@ -34,6 +34,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Pull to refresh function
+  Future<void> _refreshFeed() async {
+    setState(() {});
+    await Future.delayed(const Duration(milliseconds: 800));
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -42,91 +48,105 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (_selectedIndex == 0) {
       // Discover Page - Real Feed with Modern Design
-      currentBody = StreamBuilder<List<PostModel>>(
-        stream: _dbService.getPosts(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: ShimmerAnimation(
-                child: CircularProgressIndicator(color: AppTheme.primaryColor),
-              ),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.amber.shade100,
+      currentBody = Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: RefreshIndicator(
+            onRefresh: _refreshFeed,
+            color: Theme.of(context).primaryColor,
+            child: StreamBuilder<List<PostModel>>(
+              stream: _dbService.getPosts(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: ShimmerAnimation(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.primaryColor,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.info_outlined,
-                      size: 40,
-                      color: Colors.amber.shade700,
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.amber.shade100,
+                          ),
+                          child: Icon(
+                            Icons.info_outlined,
+                            size: 40,
+                            color: Colors.amber.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Unable to load posts',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Please check your connection',
+                          style: GoogleFonts.inter(color: Colors.grey.shade600),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Unable to load posts',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                final posts = snapshot.data!;
+                return CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    // Header with Gradient Background
+                    SliverAppBar(
+                      floating: true,
+                      snap: true,
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      expandedHeight: 180,
+                      flexibleSpace: FlexibleSpaceBar(
+                        background: _buildHeaderBackground(isDark),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Please check your connection',
-                    style: GoogleFonts.inter(color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            );
-          }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          final posts = snapshot.data!;
-          return CustomScrollView(
-            slivers: [
-              // Header with Gradient Background
-              SliverAppBar(
-                floating: true,
-                snap: true,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                expandedHeight: 180,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: _buildHeaderBackground(isDark),
-                ),
-              ),
-
-              // Posts List
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final post = posts[index];
-                    return FadeInUpAnimation(
-                      duration: Duration(milliseconds: 300 + (index * 100)),
-                      child: _buildModernSkillCard(post, context),
-                    );
-                  }, childCount: posts.length),
-                ),
-              ),
-            ],
-          );
-        },
+                    // Posts List
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final post = posts[index];
+                          return FadeInUpAnimation(
+                            duration: Duration(
+                              milliseconds: 300 + (index * 100),
+                            ),
+                            child: _buildModernSkillCard(post, context),
+                          );
+                        }, childCount: posts.length),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
       );
     } else if (_selectedIndex == 2) {
       currentBody = const ProfileScreen();

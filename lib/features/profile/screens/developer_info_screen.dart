@@ -13,7 +13,7 @@ class DeveloperInfoScreen extends StatelessWidget {
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
       appBar: AppBar(
         title: Text(
-          'About Developer',
+          'About This App',
           style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
@@ -25,48 +25,6 @@ class DeveloperInfoScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Developer Avatar
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: AppTheme.accentGradientBrush,
-              ),
-              child: Center(
-                child: Text(
-                  'S',
-                  style: GoogleFonts.poppins(
-                    fontSize: 48,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Developer Name
-            Text(
-              'Sritheshwar Rachakonda',
-              style: GoogleFonts.poppins(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Title
-            Text(
-              'App Developer',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 32),
-
             // About Section
             Container(
               padding: const EdgeInsets.all(16),
