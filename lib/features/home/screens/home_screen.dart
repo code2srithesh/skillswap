@@ -8,6 +8,7 @@ import '../../profile/screens/user_profile_screen.dart';
 import '../../skill_details/screens/skill_detail_screen.dart';
 import '../../../core/theme.dart';
 import '../../../core/animations.dart';
+import '../../../core/widgets/glass_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -134,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: _selectedIndex == 0
           ? null
           : AppBar(
@@ -226,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Modern Skill Card with Enhanced Design
   Widget _buildModernSkillCard(PostModel post, BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textTheme = Theme.of(context).textTheme;
 
     return GestureDetector(
       onTap: () {
@@ -238,189 +240,150 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(
-            color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-            width: 1,
-          ),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
+        child: GlassCard(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SkillDetailScreen(post: post),
+              ),
+            );
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Background Gradient Effect
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppTheme.primaryColor.withOpacity(0.03),
-                        AppTheme.accentColor.withOpacity(0.02),
+              // User Header
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => UserProfileScreen(
+                        userId: post.uid,
+                        userName: post.userName,
+                      ),
+                    ),
+                  );
+                },
+                child: Row(
+                  children: [
+                    // Avatar with Badge
+                    Stack(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: AppTheme.accentGradientBrush,
+                          ),
+                          child: Center(
+                            child: Text(
+                              post.userName.substring(0, 1).toUpperCase(),
+                              style: GoogleFonts.poppins(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.successColor,
+                              border: Border.all(
+                                color: isDark
+                                    ? AppTheme.darkSurface
+                                    : Colors.white,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ),
-              ),
-
-              // Card Content
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // User Header
-                    InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => UserProfileScreen(
-                              userId: post.uid,
-                              userName: post.userName,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Row(
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Avatar with Badge
-                          Stack(
-                            children: [
-                              Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: AppTheme.accentGradientBrush,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    post.userName.substring(0, 1).toUpperCase(),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: Container(
-                                  width: 16,
-                                  height: 16,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppTheme.successColor,
-                                    border: Border.all(
-                                      color: isDark
-                                          ? AppTheme.darkSurface
-                                          : Colors.white,
-                                      width: 2,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Text(
+                            post.userName,
+                            style: (textTheme.titleLarge ?? const TextStyle())
+                                .copyWith(fontSize: 16),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  post.userName,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white : Colors.black,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  post.role,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          const SizedBox(height: 4),
+                          Text(
+                            post.role,
+                            style: (textTheme.bodyMedium ?? const TextStyle())
+                                .copyWith(fontSize: 12),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-
-                    // Skills Section
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSkillChip(
-                            "Teaches",
-                            post.teachSkill,
-                            AppTheme.primaryColor,
-                            isDark,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildSkillChip(
-                            "Learns",
-                            post.learnSkill,
-                            AppTheme.accentColor,
-                            isDark,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Call-to-Action Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  SkillDetailScreen(post: post),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          "Connect",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Skills Section
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSkillChip(
+                      "Teaches",
+                      post.teachSkill,
+                      AppTheme.primaryColor,
+                      isDark,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSkillChip(
+                      "Learns",
+                      post.learnSkill,
+                      AppTheme.accentColor,
+                      isDark,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Call-to-Action Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SkillDetailScreen(post: post),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    "Connect",
+                    style: (textTheme.titleLarge ?? const TextStyle()).copyWith(
+                      fontSize: 14,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
             ],

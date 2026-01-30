@@ -7,8 +7,8 @@ import 'package:provider/provider.dart';
 import '../../auth/services/auth_service.dart';
 import '../../messaging/screens/conversations_screen.dart';
 import '../../swaps/screens/swaps_screen.dart';
-import '../../../core/theme_provider.dart';
 import '../../../core/theme.dart';
+import '../../../core/theme_provider.dart';
 import 'edit_profile_screen.dart';
 import '../../home/screens/my_posts_screen.dart';
 
