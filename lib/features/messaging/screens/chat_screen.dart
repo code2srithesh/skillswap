@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/message_model.dart';
 import '../services/messaging_service.dart';
 import '../../../core/theme.dart';
 import '../../../core/time_formatter.dart';
 
 class ChatScreen extends StatefulWidget {
-  final String otherUserId;
-  final String otherUserName;
+  final String conversationId;
+  final String? fallbackOtherUserId;
+  final String? fallbackOtherUserName;
 
   const ChatScreen({
-    required this.otherUserId,
-    required this.otherUserName,
+    required this.conversationId,
+    this.fallbackOtherUserId,
+    this.fallbackOtherUserName,
     super.key,
   });
 
@@ -25,6 +28,12 @@ class _ChatScreenState extends State<ChatScreen> {
   final _messagingService = MessagingService();
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _messagingService.markConversationRead(widget.conversationId);
+  }
+
   void _sendMessage() async {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
@@ -33,9 +42,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.clear();
 
     try {
-      await _messagingService.sendMessage(
-        receiverId: widget.otherUserId,
-        receiverName: widget.otherUserName,
+      await _messagingService.sendMessageToConversation(
+        conversationId: widget.conversationId,
         message: message,
       );
     } catch (e) {
@@ -64,21 +72,55 @@ class _ChatScreenState extends State<ChatScreen> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.otherUserName,
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              'Active',
-              style: GoogleFonts.inter(fontSize: 12, color: Colors.green),
-            ),
-          ],
+        title: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('conversations')
+              .doc(widget.conversationId)
+              .snapshots(),
+          builder: (context, snap) {
+            final data = snap.data?.data();
+            final names =
+                (data?['participantNames'] as Map?)?.map(
+                  (k, v) => MapEntry(k.toString(), v.toString()),
+                ) ??
+                <String, String>{};
+            final participants =
+                (data?['participants'] as List?)
+                    ?.map((e) => e.toString())
+                    .toList() ??
+                <String>[];
+            final otherId = participants.firstWhere(
+              (id) => id != currentUserId,
+              orElse: () => widget.fallbackOtherUserId ?? '',
+            );
+            final otherName =
+                names[otherId] ?? widget.fallbackOtherUserName ?? 'Chat';
+
+            final swapStatus = (data?['swapStatus'] ?? 'accepted').toString();
+            final statusText = swapStatus == 'accepted'
+                ? 'Active'
+                : (swapStatus == 'completed' ? 'Completed' : 'Locked');
+            final statusColor = swapStatus == 'accepted'
+                ? Colors.green
+                : (swapStatus == 'completed' ? Colors.blue : Colors.orange);
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  otherName,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  statusText,
+                  style: GoogleFonts.inter(fontSize: 12, color: statusColor),
+                ),
+              ],
+            );
+          },
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -88,7 +130,9 @@ class _ChatScreenState extends State<ChatScreen> {
           // Messages List
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
-              stream: _messagingService.getMessages(widget.otherUserId),
+              stream: _messagingService.getMessagesByConversationId(
+                widget.conversationId,
+              ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(
@@ -100,9 +144,36 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 if (snapshot.hasError) {
                   return Center(
-                    child: Text(
-                      'Error loading messages',
-                      style: GoogleFonts.inter(),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.amber.shade100,
+                          ),
+                          child: Icon(
+                            Icons.info_outlined,
+                            size: 40,
+                            color: Colors.amber.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Unable to load chat',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Please try again',
+                          style: GoogleFonts.inter(color: Colors.grey.shade600),
+                        ),
+                      ],
                     ),
                   );
                 }
@@ -168,7 +239,8 @@ class _ChatScreenState extends State<ChatScreen> {
                               radius: 16,
                               backgroundColor: AppTheme.accentColor,
                               child: Text(
-                                widget.otherUserName[0].toUpperCase(),
+                                (widget.fallbackOtherUserName ?? 'U')[0]
+                                    .toUpperCase(),
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -246,61 +318,87 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
 
           // Message Input
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey.shade900 : Colors.white,
-              border: Border(
-                top: BorderSide(color: Colors.grey.shade300, width: 1),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    enabled: !_isLoading,
-                    maxLines: null,
-                    decoration: InputDecoration(
-                      hintText: 'Type a message...',
-                      hintStyle: GoogleFonts.inter(color: Colors.grey.shade600),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: isDark
-                          ? Colors.grey.shade800
-                          : Colors.grey.shade100,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+          StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('conversations')
+                .doc(widget.conversationId)
+                .snapshots(),
+            builder: (context, snap) {
+              final swapStatus =
+                  (snap.data?.data()?['swapStatus'] ?? 'accepted').toString();
+              final canChat =
+                  swapStatus == 'accepted' || swapStatus == 'completed';
+
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey.shade900 : Colors.white,
+                  border: Border(
+                    top: BorderSide(color: Colors.grey.shade300, width: 1),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        enabled: !_isLoading && canChat,
+                        maxLines: null,
+                        decoration: InputDecoration(
+                          hintText: canChat
+                              ? 'Type a message...'
+                              : 'Chat unlocks after acceptance',
+                          hintStyle: GoogleFonts.inter(
+                            color: Colors.grey.shade600,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade100,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: canChat
+                            ? AppTheme.primaryColor
+                            : Colors.grey.shade500,
+                      ),
+                      child: IconButton(
+                        icon: _isLoading
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.send_rounded,
+                                color: Colors.white,
+                              ),
+                        onPressed: (_isLoading || !canChat)
+                            ? null
+                            : _sendMessage,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppTheme.primaryColor,
-                  ),
-                  child: IconButton(
-                    icon: _isLoading
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.send_rounded, color: Colors.white),
-                    onPressed: _isLoading ? null : _sendMessage,
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ],
       ),

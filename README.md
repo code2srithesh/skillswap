@@ -1,193 +1,121 @@
-# SkillSwap 🎓
+# SkillSwap
 
-A peer-to-peer skill exchange platform built for college students to teach and learn from each other. Built with Flutter & Firebase.
+SkillSwap is a peer-to-peer skill exchange platform for college students. Users post what they can teach and what they want to learn, send swap requests, and once a swap is accepted they can chat inside a swap-scoped conversation.
 
-## ✨ Features
+This repo contains a Flutter + Firebase app (Auth + Firestore + Hosting) and supports Web, Android, iOS, macOS, Windows, and Linux.
 
-### Core Features
-- 🔐 **College Email Authentication** - Only VIT students (@vitapstudent.ac.in) can join
-- 🌐 **Google Sign-in** - Secure OAuth2 authentication with college email validation
-- 📱 **Real-time Feed** - Live skill exchange requests from other students
-- 🎯 **Skill Matching** - Find people teaching what you want to learn
-- 💬 **Swap Requests** - Connect with peers and negotiate skill exchanges
-- 👥 **Profile Management** - Customize your profile with avatar, bio, and skills
+## Key features
 
-### Advanced Features
-- 🌙 **Dark Mode & Light Mode** - Switch between themes instantly
-- ✨ **Smooth Animations** - Professional micro-interactions & transitions
-- 🎨 **Material 3 Design** - Modern, responsive UI
-- 💾 **Real-time Sync** - Firestore database for instant updates
-- 🔔 **Pending Requests** - Track incoming swap requests
+- Authentication
+	- Email sign-up/sign-in restricted to `@vitapstudent.ac.in`
+	- Google Sign-In (OAuth) with domain validation
+- Discover + Search
+	- Browse and search skill posts
+	- Posts can become hidden from discover after an accepted chat starts (business rule)
+- Swap workflow
+	- Swap requests show status: `pending` / `accepted` / `rejected`
+	- “My Swaps” screen to manage incoming + active swaps
+- Messaging
+	- Chat is swap-scoped (conversation is tied to a specific request)
+	- Chat becomes available after the swap is accepted
+	- Per-user unread tracking on conversations
+- Profiles
+	- Bio + username display
+	- Modern avatar picker (circular avatar rendering)
+- UI
+	- Material 3 design
+	- Light/Dark mode
 
-## 🛠️ Tech Stack
+## Tech stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Flutter (Dart) |
-| **Backend** | Firebase |
-| **Database** | Firestore (Real-time) |
-| **Authentication** | Firebase Auth + Google OAuth2 |
-| **State Management** | Provider |
-| **Hosting** | Firebase Hosting |
-| **Design System** | Material 3 |
+- Flutter (Dart)
+- Firebase Auth
+- Cloud Firestore
+- Firebase Hosting (web)
+- Provider (state management)
 
-## 🚀 Getting Started
+## Requirements
 
-### Prerequisites
-- Flutter 3.10+
-- Dart 3.0+
-- Firebase CLI (for deployment)
+- Flutter SDK installed
+- For deployment: Firebase CLI (`firebase --version`)
 
-### Installation
+## Run locally
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd skillswap
-
-# Install dependencies
 flutter pub get
-
-# Run the app
 flutter run -d chrome
 ```
 
-### Configuration
-- Firebase is pre-configured with project ID: `skillswap-26`
-- No additional setup needed for local development
-- Google Sign-in is configured for web
-
-## 📋 Usage
-
-### For Students
-1. **Sign up** with your college email (e.g., name@vitapstudent.ac.in)
-2. **Post a skill request** - Share what you can teach and want to learn
-3. **Browse the feed** - Find students with matching skills
-4. **Send a request** - Connect with someone for a skill swap
-5. **Complete the swap** - Learn and teach asynchronously or synchronously
-
-### For Developers
-- See [FEATURES_AND_DEPLOYMENT.md](./FEATURES_AND_DEPLOYMENT.md) for detailed guide
-- Deployment steps for Firebase Hosting
-- Mobile app building instructions
-- Architecture documentation
-
-## 🌐 Deployment
-
-### Web Deployment (Recommended - FREE)
+To run on another platform:
 
 ```bash
-# Build for production
-flutter build web --release
+flutter run -d android
+# or: ios / macos / windows / linux
+```
 
-# Deploy to Firebase Hosting
+## Firebase configuration
+
+Firebase options are checked into the repo in `lib/firebase_options.dart`.
+
+Firebase project configuration files:
+- Web hosting config: `firebase.json`
+- Android: `android/app/google-services.json`
+- iOS: `ios/Runner/GoogleService-Info.plist`
+
+## Deploy (web)
+
+```bash
+flutter build web --release
 firebase deploy --only hosting
 ```
 
-**Live URL**: `https://skillswap-26.web.app`
-
-### Mobile Deployment (Optional)
-
-**Android**:
-```bash
-flutter build apk --release
-# Upload to Google Play Store ($25)
-```
-
-**iOS**:
-```bash
-flutter build ipa --release
-# Upload to App Store ($99/year)
-```
-
-## 📱 Screenshots
-
-### Authentication
-- Email/Password login
-- Google Sign-in with college email validation
-- Automatic profile creation
-
-### Home Feed
-- Real-time skill requests
-- Smooth animations & transitions
-- Dark mode support
-
-### Profile
-- Profile customization
-- Theme toggle
-- Credit tracking
-- Pending requests
-
-## 🎯 Key Highlights for Resume
-
-✅ **Full-stack Flutter application**  
-✅ **Firebase + Firestore real-time backend**  
-✅ **OAuth2 Google authentication implementation**  
-✅ **Dark mode & theme customization**  
-✅ **Production-ready architecture**  
-✅ **Cloud deployment (Firebase Hosting)**  
-✅ **Responsive Material 3 UI**  
-✅ **Provider state management**  
-✅ **Email domain validation**  
-✅ **Real-world problem solving**  
-
-## 📚 Architecture
+## Folder structure (high level)
 
 ```
 lib/
-├── main.dart              # App entry point
-├── core/
-│   ├── theme.dart         # Material 3 themes (light/dark)
-│   ├── theme_provider.dart # Theme state management
-│   └── animations.dart    # Custom animations
-├── features/
-│   ├── auth/              # Authentication
-│   │   ├── screens/
-│   │   │   ├── login_screen.dart
-│   │   │   └── signup_screen.dart
-│   │   └── services/auth_service.dart
-│   ├── home/              # Main feed
-│   │   ├── screens/
-│   │   ├── models/post_model.dart
-│   │   ├── widgets/skill_card.dart
-│   │   └── services/database_service.dart
-│   ├── profile/           # User profile
-│   │   └── screens/
-│   └── skill_details/     # Skill detail view
-│       └── screens/
-└── firebase_options.dart  # Firebase config
+	main.dart
+	firebase_options.dart
+	core/
+		theme.dart
+		theme_provider.dart
+		animations.dart
+		time_formatter.dart
+	features/
+		auth/
+			screens/
+			services/
+		home/
+			models/
+			screens/
+			services/
+			widgets/
+		messaging/
+			screens/
+			services/
+		profile/
+			screens/
+		skill_details/
+			screens/
+		swaps/
+			screens/
+test/
+	widget_test.dart
 ```
 
-## 🔐 Security
+## Core flows (how the app works)
 
-- Email domain validation (@vitapstudent.ac.in only)
-- Firestore security rules for data protection
-- No sensitive data in client code
-- Firebase Auth handles password security
+1) User signs in (email or Google) → profile is available in Firestore.
 
-## 🚧 Future Enhancements
+2) User creates a post → it appears in Discover/Search (unless hidden by business rules).
 
-- [ ] In-app messaging/chat
-- [ ] Rating & review system
-- [ ] Video call integration
-- [ ] Calendar scheduling
-- [ ] Notification system
-- [ ] User verification/badges
-- [ ] Payment integration (if needed)
+3) Another user sends a swap request → requester/owner can see status updates.
 
-## 📝 License
+4) When a request is accepted → chat becomes available for that swap.
 
-This project is open source and available under the MIT License.
+5) First message in an accepted swap can mark the related post as not discoverable (so it disappears from Discover).
 
-## 👨‍💻 Author
+## Notes
 
-Built as a portfolio project for demonstrating full-stack development skills.
+- This repository intentionally keeps documentation in a single file (this `README.md`).
 
-## 📞 Support
-
-For detailed deployment and feature information, see [FEATURES_AND_DEPLOYMENT.md](./FEATURES_AND_DEPLOYMENT.md)
-
----
-
-**Status**: ✅ Production Ready  
-**Last Updated**: January 29, 2026
+Status: production-ready

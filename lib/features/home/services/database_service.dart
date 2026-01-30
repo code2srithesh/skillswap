@@ -29,7 +29,6 @@ class DatabaseService {
       'email': email,
       'username': uniqueUsername,
       'role': role, // e.g. "3rd Year CSE"
-      'credits': 5, // FREE CREDITS for new users!
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -89,6 +88,7 @@ class DatabaseService {
       'expiryDays': validExpiryDays,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'isDiscoverable': true, // Hide from Discover when swap chat starts
       'isSwapped': false, // Track if skills have been swapped
       'swappedWith': '', // UID of person swapped with
       'swappedAt': null, // When the swap happened
@@ -102,6 +102,8 @@ class DatabaseService {
     required String senderName,
     required String message,
     required String skillOffered,
+    required String postId,
+    required String postOwnerName,
   }) async {
     final senderUid = FirebaseAuth.instance.currentUser?.uid;
 
@@ -111,8 +113,20 @@ class DatabaseService {
       'senderName': senderName,
       'message': message,
       'skillOffered': skillOffered,
+
+      // Helps querying active swaps without OR queries
+      'participants': [senderUid, receiverUid],
+
+      // New canonical fields (keep old ones above for compatibility)
+      'requesterId': senderUid,
+      'requesterName': senderName,
+      'postOwnerId': receiverUid,
+      'postOwnerName': postOwnerName,
+      'postId': postId,
+
       'status': 'pending', // pending, accepted, rejected
       'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
@@ -128,9 +142,10 @@ class DatabaseService {
 
             // Get user email from the document or verify with auth
             final isSwapped = data['isSwapped'] ?? false;
+            final isDiscoverable = data['isDiscoverable'] ?? true;
 
             // Exclude own posts, swapped posts
-            return !isOwnPost && !isSwapped;
+            return !isOwnPost && !isSwapped && isDiscoverable;
           })
           .map((doc) {
             final data = doc.data();

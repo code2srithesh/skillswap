@@ -47,9 +47,36 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
 
           if (snapshot.hasError) {
             return Center(
-              child: Text(
-                'Error loading conversations',
-                style: GoogleFonts.inter(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.amber.shade100,
+                    ),
+                    child: Icon(
+                      Icons.info_outlined,
+                      size: 40,
+                      color: Colors.amber.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Unable to load messages',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please try again later',
+                    style: GoogleFonts.inter(color: Colors.grey.shade600),
+                  ),
+                ],
               ),
             );
           }
@@ -99,12 +126,8 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
             itemCount: conversations.length,
             itemBuilder: (context, index) {
               final conversation = conversations[index];
-              final otherUserId = conversation.user1Id == currentUserId
-                  ? conversation.user2Id
-                  : conversation.user1Id;
-              final otherUserName = conversation.user1Id == currentUserId
-                  ? conversation.user2Name
-                  : conversation.user1Name;
+              final otherUserId = conversation.otherUserId(currentUserId);
+              final otherUserName = conversation.otherUserName(currentUserId);
 
               return Padding(
                 padding: const EdgeInsets.symmetric(
@@ -119,8 +142,9 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => ChatScreen(
-                            otherUserId: otherUserId,
-                            otherUserName: otherUserName,
+                            conversationId: conversation.id,
+                            fallbackOtherUserId: otherUserId,
+                            fallbackOtherUserName: otherUserName,
                           ),
                         ),
                       );
@@ -193,7 +217,8 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                                   color: Colors.grey.shade600,
                                 ),
                               ),
-                              if (conversation.unreadCount > 0) ...[
+                              if (conversation.unreadCountFor(currentUserId) >
+                                  0) ...[
                                 const SizedBox(height: 4),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -205,7 +230,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(
-                                    '${conversation.unreadCount}',
+                                    '${conversation.unreadCountFor(currentUserId)}',
                                     style: GoogleFonts.poppins(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,

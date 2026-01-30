@@ -104,6 +104,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   final search = _keyword.toLowerCase();
                   final postUserId = data['uid'] ?? '';
                   final isSwapped = data['isSwapped'] ?? false;
+                  final isDiscoverable = data['isDiscoverable'] ?? true;
 
                   final matchesSearch =
                       _keyword.isEmpty ||
@@ -112,7 +113,10 @@ class _SearchScreenState extends State<SearchScreen> {
                   final isNotOwnPost = postUserId != currentUserId;
                   final notSwapped = !isSwapped;
 
-                  return matchesSearch && isNotOwnPost && notSwapped;
+                  return matchesSearch &&
+                      isNotOwnPost &&
+                      notSwapped &&
+                      isDiscoverable;
                 }).toList();
 
                 if (filteredDocs.isEmpty) {

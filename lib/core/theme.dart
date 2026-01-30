@@ -10,6 +10,10 @@ class AppTheme {
   static const Color successColor = Color(0xFF00D084);
   static const Color warningColor = Color(0xFFFFB800);
 
+  static const double radiusLg = 20;
+  static const double radiusMd = 16;
+  static const double radiusSm = 12;
+
   // Light Theme Colors
   static const Color lightBg = Color(0xFFFAFBFC);
   static const Color lightBg2 = Color(0xFFF0F3FF);
@@ -30,6 +34,11 @@ class AppTheme {
   static const List<Color> accentGradient = [primaryColor, accentColor];
 
   static ThemeData get lightTheme {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: primaryColor,
+      brightness: Brightness.light,
+    ).copyWith(secondary: accentColor, surface: lightSurface);
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
@@ -37,12 +46,15 @@ class AppTheme {
       scaffoldBackgroundColor: lightBg,
 
       // Color Scheme
-      colorScheme: const ColorScheme.light(
-        primary: primaryColor,
-        secondary: accentColor,
-        surface: lightSurface,
-        background: lightBg,
-        error: Colors.redAccent,
+      colorScheme: scheme,
+
+      // Smooth modern motion
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: ZoomPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+        },
       ),
 
       // App Bar with modern look
@@ -59,13 +71,26 @@ class AppTheme {
         ),
       ),
 
+      // Navigation bar (Material 3)
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: lightSurface,
+        indicatorColor: primaryColor.withValues(alpha: 0.14),
+        height: 68,
+        labelTextStyle: WidgetStateProperty.all(
+          GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ),
+
       // Card Theme with elevation
       cardTheme: CardThemeData(
-        elevation: 2,
+        elevation: 0,
         color: lightSurface,
         margin: const EdgeInsets.only(bottom: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        shadowColor: Colors.black.withOpacity(0.08),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusLg),
+          side: BorderSide(color: Colors.grey.shade200),
+        ),
+        shadowColor: Colors.black.withValues(alpha: 0.06),
       ),
 
       // Text Theme with Poppins & Inter fonts
@@ -110,10 +135,10 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
-          elevation: 4,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(radiusMd),
           ),
           textStyle: GoogleFonts.poppins(
             fontSize: 16,
@@ -128,7 +153,7 @@ class AppTheme {
           side: const BorderSide(color: primaryColor, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(radiusMd),
           ),
           textStyle: GoogleFonts.poppins(
             fontSize: 16,
@@ -149,15 +174,15 @@ class AppTheme {
         filled: true,
         fillColor: Colors.grey.shade100,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(radiusMd),
           borderSide: const BorderSide(color: Colors.transparent),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(radiusMd),
           borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(radiusMd),
           borderSide: const BorderSide(color: primaryColor, width: 2.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
@@ -168,12 +193,26 @@ class AppTheme {
         labelStyle: GoogleFonts.inter(color: Colors.grey.shade700),
       ),
 
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.black.withValues(alpha: 0.85),
+        contentTextStyle: GoogleFonts.inter(color: Colors.white),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusSm),
+        ),
+      ),
+
       // Divider Color
       dividerColor: Colors.grey.shade200,
     );
   }
 
   static ThemeData get darkTheme {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: primaryColor,
+      brightness: Brightness.dark,
+    ).copyWith(secondary: accentColor, surface: darkSurface);
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -181,12 +220,14 @@ class AppTheme {
       scaffoldBackgroundColor: darkBg,
 
       // Color Scheme
-      colorScheme: const ColorScheme.dark(
-        primary: primaryColor,
-        secondary: accentColor,
-        surface: darkSurface,
-        background: darkBg,
-        error: Colors.redAccent,
+      colorScheme: scheme,
+
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: ZoomPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+        },
       ),
 
       // App Bar
@@ -205,14 +246,23 @@ class AppTheme {
 
       // Card Theme
       cardTheme: CardThemeData(
-        elevation: 2,
+        elevation: 0,
         color: darkSurface,
         margin: const EdgeInsets.only(bottom: 16),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(radiusLg),
           side: BorderSide(color: Colors.grey.shade800),
         ),
-        shadowColor: Colors.black.withOpacity(0.3),
+        shadowColor: Colors.black.withValues(alpha: 0.3),
+      ),
+
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: darkSurface,
+        indicatorColor: primaryColor.withValues(alpha: 0.22),
+        height: 68,
+        labelTextStyle: WidgetStateProperty.all(
+          GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
       ),
 
       // Text Theme
@@ -257,10 +307,10 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
-          elevation: 4,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(radiusMd),
           ),
           textStyle: GoogleFonts.poppins(
             fontSize: 16,
@@ -275,7 +325,7 @@ class AppTheme {
           side: const BorderSide(color: primaryColor, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(radiusMd),
           ),
           textStyle: GoogleFonts.poppins(
             fontSize: 16,
@@ -289,15 +339,15 @@ class AppTheme {
         filled: true,
         fillColor: Colors.grey.shade900,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(radiusMd),
           borderSide: const BorderSide(color: Colors.transparent),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(radiusMd),
           borderSide: BorderSide(color: Colors.grey.shade800, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(radiusMd),
           borderSide: const BorderSide(color: primaryColor, width: 2.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
@@ -306,6 +356,15 @@ class AppTheme {
         ),
         hintStyle: GoogleFonts.inter(color: Colors.grey.shade500),
         labelStyle: GoogleFonts.inter(color: Colors.grey.shade400),
+      ),
+
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.black.withValues(alpha: 0.85),
+        contentTextStyle: GoogleFonts.inter(color: Colors.white),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusSm),
+        ),
       ),
 
       // Divider Color

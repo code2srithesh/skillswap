@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -84,7 +85,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           final userData = profileSnapshot.data!;
           final userName = userData['name'] ?? 'Student';
           final userRole = userData['role'] ?? 'VIT Student';
-          final userCredits = userData['credits'] ?? 0;
+          final username = (userData['username'] ?? '').toString();
+          final bio = (userData['bio'] ?? '').toString().trim();
+          final photoUrl = userData['photoUrl'];
 
           return SingleChildScrollView(
             child: Column(
@@ -107,10 +110,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             border: Border.all(color: Colors.white, width: 4),
                             color: Colors.white12,
                           ),
-                          child: Icon(
-                            Icons.person_rounded,
-                            size: 50,
-                            color: Colors.white,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.transparent,
+                            backgroundImage:
+                                (photoUrl != null &&
+                                    photoUrl.toString().startsWith('data:'))
+                                ? MemoryImage(
+                                    base64Decode(
+                                      photoUrl.toString().split(',')[1],
+                                    ),
+                                  )
+                                : null,
+                            child:
+                                (photoUrl == null ||
+                                    photoUrl.toString().isEmpty)
+                                ? Icon(
+                                    Icons.person_rounded,
+                                    size: 50,
+                                    color: Colors.white,
+                                  )
+                                : null,
                           ),
                         ),
                       ),
@@ -123,6 +142,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           color: Colors.white,
                         ),
                       ),
+                      if (username.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '@$username',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: Colors.white.withOpacity(0.85),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        userRole,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.85),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -132,7 +171,60 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      // Role & Credits Card
+                      // About / Bio Card
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.grey.shade900
+                              : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: AppTheme.primaryColor,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'About',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    bio.isNotEmpty ? bio : 'No bio added yet',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: bio.isNotEmpty
+                                          ? null
+                                          : Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Year & Branch Card
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -166,36 +258,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     ),
                                     Text(
                                       userRole,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const Divider(height: 24),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.star_rounded,
-                                  color: Colors.amber,
-                                  size: 24,
-                                ),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Skill Credits',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    Text(
-                                      '$userCredits credits',
                                       style: GoogleFonts.poppins(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,

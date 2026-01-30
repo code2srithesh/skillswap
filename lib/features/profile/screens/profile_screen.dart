@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../../auth/services/auth_service.dart';
 import '../../messaging/screens/conversations_screen.dart';
-import '../../messaging/services/messaging_service.dart';
+import '../../swaps/screens/swaps_screen.dart';
 import '../../../core/theme_provider.dart';
 import '../../../core/theme.dart';
 import 'edit_profile_screen.dart';
@@ -45,7 +45,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final name = data?['name'] ?? 'Student';
         final username = data?['username'] ?? 'user';
         final role = data?['role'] ?? 'Unknown Role';
-        final credits = data?['credits'] ?? 0;
         final photoUrl = data?['photoUrl'];
 
         return SingleChildScrollView(
@@ -191,11 +190,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 32),
 
-              // REQUESTS SECTION
+              // SWAP REQUESTS SECTION
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  "Pending Requests",
+                  "Swap Requests",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -208,107 +207,130 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'receiverUid',
                       isEqualTo: FirebaseAuth.instance.currentUser?.uid,
                     )
-                    .where('status', isEqualTo: 'pending')
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
-                      child: Text(
-                        "No new requests.",
-                        style: TextStyle(color: Colors.grey),
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "No swap requests yet",
+                            style: TextStyle(
+                              color: Colors.blue.shade700,
+                              fontSize: 14,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SwapsScreen(),
+                                ),
+                              );
+                            },
+                            child: const Text('My Swaps'),
+                          ),
+                        ],
                       ),
                     );
                   }
 
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      var doc = snapshot.data!.docs[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          title: Text("${doc['senderName']} wants to swap"),
-                          subtitle: Text(doc['message'] ?? 'No message'),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.check,
-                                  color: Colors.green,
-                                ),
-                                onPressed: () async {
-                                  try {
-                                    // Get sender's name and uid
-                                    final senderDoc = await FirebaseFirestore
-                                        .instance
-                                        .collection('users')
-                                        .doc(doc['senderUid'])
-                                        .get();
-                                    final senderName =
-                                        senderDoc['name'] ??
-                                        doc['senderName'] ??
-                                        'Unknown';
+                  final requests = snapshot.data!.docs;
 
-                                    // Update request status
-                                    await doc.reference.update({
-                                      'status': 'accepted',
-                                    });
+                  // Count by status
+                  int pending = 0;
+                  int accepted = 0;
+                  int rejected = 0;
+                  int completed = 0;
 
-                                    // Initiate conversation with the first message from the request
-                                    await MessagingService().initiateConversation(
-                                      otherUserId: doc['senderUid'],
-                                      otherUserName: senderName,
-                                      initialMessage:
-                                          doc['message'] ??
-                                          'Hey! Let\'s start our skill swap!',
-                                    );
+                  for (var doc in requests) {
+                    final status = doc['status'] ?? 'pending';
+                    if (status == 'pending') {
+                      pending++;
+                    } else if (status == 'accepted') {
+                      accepted++;
+                    } else if (status == 'rejected') {
+                      rejected++;
+                    } else if (status == 'completed') {
+                      completed++;
+                    }
+                  }
 
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Request accepted! Chat started.',
-                                          ),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
-                                    }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(content: Text('Error: $e')),
-                                      );
-                                    }
-                                  }
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.close,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () {
-                                  doc.reference.update({'status': 'rejected'});
-                                },
-                              ),
-                            ],
+                  return Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatusCard(
+                              label: 'Pending',
+                              count: pending,
+                              color: Colors.orange,
+                            ),
                           ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildStatusCard(
+                              label: 'Accepted',
+                              count: accepted,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatusCard(
+                              label: 'Rejected',
+                              count: rejected,
+                              color: Colors.red,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildStatusCard(
+                              label: 'Completed',
+                              count: completed,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.swap_horiz_rounded),
+                          label: const Text('Manage My Swaps'),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SwapsScreen(),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   );
                 },
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
               // 2. STATS ROW
               Container(
@@ -326,8 +348,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildStat(credits.toString(), "Credits", Colors.green),
-                    _buildContainerDivider(),
                     _buildStat("0", "Swaps", Colors.blue),
                     _buildContainerDivider(),
                     _buildStat("5.0", "Rating", Colors.orange),
@@ -410,6 +430,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildStatusCard({
+    required String label,
+    required int count,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            count.toString(),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

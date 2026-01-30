@@ -4,6 +4,7 @@ import '../models/post_model.dart';
 import '../services/database_service.dart';
 import 'post_skill_screen.dart';
 import '../../profile/screens/profile_screen.dart';
+import '../../profile/screens/user_profile_screen.dart';
 import '../../skill_details/screens/skill_detail_screen.dart';
 import '../../../core/theme.dart';
 import '../../../core/animations.dart';
@@ -56,15 +57,31 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red.shade300,
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.amber.shade100,
+                    ),
+                    child: Icon(
+                      Icons.info_outlined,
+                      size: 40,
+                      color: Colors.amber.shade700,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "Error: ${snapshot.error}",
-                    style: GoogleFonts.inter(color: Colors.red.shade300),
+                    'Unable to load posts',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please check your connection',
+                    style: GoogleFonts.inter(color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -263,74 +280,88 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // User Header
-                    Row(
-                      children: [
-                        // Avatar with Badge
-                        Stack(
-                          children: [
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: AppTheme.accentGradientBrush,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  post.userName.substring(0, 1).toUpperCase(),
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => UserProfileScreen(
+                              userId: post.uid,
+                              userName: post.userName,
                             ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: 16,
-                                height: 16,
+                          ),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          // Avatar with Badge
+                          Stack(
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: AppTheme.successColor,
-                                  border: Border.all(
-                                    color: isDark
-                                        ? AppTheme.darkSurface
-                                        : Colors.white,
-                                    width: 2,
+                                  gradient: AppTheme.accentGradientBrush,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    post.userName.substring(0, 1).toUpperCase(),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                post.userName,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white : Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                post.role,
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppTheme.successColor,
+                                    border: Border.all(
+                                      color: isDark
+                                          ? AppTheme.darkSurface
+                                          : Colors.white,
+                                      width: 2,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  post.userName,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  post.role,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
 

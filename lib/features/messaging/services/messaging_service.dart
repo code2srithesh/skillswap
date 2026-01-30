@@ -7,6 +7,180 @@ class MessagingService {
   final String _messagesCollection = 'messages';
   final String _conversationsCollection = 'conversations';
 
+  Future<String> ensureConversationForRequest({
+    required String requestId,
+    required String requesterId,
+    required String requesterName,
+    required String postOwnerId,
+    required String postOwnerName,
+    String? postId,
+  }) async {
+    final conversationId = requestId;
+    final conversationRef = _db
+        .collection(_conversationsCollection)
+        .doc(conversationId);
+
+    await _db.runTransaction((txn) async {
+      final snap = await txn.get(conversationRef);
+      if (snap.exists) return;
+
+      txn.set(conversationRef, {
+        'id': conversationId,
+        'swapId': requestId,
+        'postId': postId,
+        'participants': [requesterId, postOwnerId],
+        'participantNames': {
+          requesterId: requesterName,
+          postOwnerId: postOwnerName,
+        },
+        'swapStatus': 'accepted',
+        'lastMessage': '',
+        'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastMessageSenderId': null,
+        'unread': {requesterId: 0, postOwnerId: 0},
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    });
+
+    return conversationId;
+  }
+
+  Stream<List<MessageModel>> getMessagesByConversationId(
+    String conversationId,
+  ) {
+    return _db
+        .collection(_messagesCollection)
+        .where('conversationId', isEqualTo: conversationId)
+        .snapshots()
+        .map((snapshot) {
+          final messages = snapshot.docs
+              .map((doc) => MessageModel.fromJson(doc.data()))
+              .toList();
+          messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return messages;
+        });
+  }
+
+  Future<void> sendMessageToConversation({
+    required String conversationId,
+    required String message,
+  }) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) throw "User not logged in";
+
+    final conversationRef = _db
+        .collection(_conversationsCollection)
+        .doc(conversationId);
+    final messageRef = _db.collection(_messagesCollection).doc();
+
+    await _db.runTransaction((txn) async {
+      final conversationSnap = await txn.get(conversationRef);
+      if (!conversationSnap.exists) {
+        throw 'Conversation not found';
+      }
+
+      final data = conversationSnap.data() as Map<String, dynamic>;
+      final participantsRaw = data['participants'] as List?;
+      final participants =
+          participantsRaw?.map((e) => e.toString()).toList(growable: false) ??
+          <String>[];
+
+      if (!participants.contains(currentUser.uid)) {
+        throw 'Not a participant';
+      }
+
+      final swapStatus = (data['swapStatus'] ?? 'accepted').toString();
+      if (swapStatus != 'accepted' && swapStatus != 'completed') {
+        throw 'Chat is not available for this swap yet';
+      }
+
+      // Once chat starts for an accepted swap, hide the related post from Discover.
+      // This keeps the post visible only until someone actually starts messaging.
+      String? postId;
+      final postIdRaw = (data['postId'] ?? '').toString();
+      if (postIdRaw.isNotEmpty) {
+        postId = postIdRaw;
+      } else {
+        // Fallback for older conversation docs: infer from the request doc.
+        final requestRef = _db.collection('requests').doc(conversationId);
+        final requestSnap = await txn.get(requestRef);
+        if (requestSnap.exists) {
+          final requestData = requestSnap.data() as Map<String, dynamic>;
+          final requestPostId = (requestData['postId'] ?? '').toString();
+          if (requestPostId.isNotEmpty) postId = requestPostId;
+        }
+      }
+      if (postId != null) {
+        final postRef = _db.collection('posts').doc(postId);
+        txn.set(postRef, {
+          'isDiscoverable': false,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+
+      final receiverId = participants.firstWhere(
+        (id) => id != currentUser.uid,
+        orElse: () => '',
+      );
+      if (receiverId.isEmpty) throw 'Invalid conversation participants';
+
+      final participantNamesRaw = data['participantNames'] as Map?;
+      final participantNames =
+          participantNamesRaw?.map(
+            (k, v) => MapEntry(k.toString(), v.toString()),
+          ) ??
+          <String, String>{};
+
+      final senderName = participantNames[currentUser.uid] ?? 'Unknown';
+
+      final unreadRaw = data['unread'] as Map?;
+      final unread =
+          unreadRaw?.map(
+            (k, v) => MapEntry(k.toString(), (v as num?)?.toInt() ?? 0),
+          ) ??
+          <String, int>{};
+      unread[receiverId] = (unread[receiverId] ?? 0) + 1;
+
+      txn.set(messageRef, {
+        'id': messageRef.id,
+        'conversationId': conversationId,
+        'senderId': currentUser.uid,
+        'senderName': senderName,
+        'receiverId': receiverId,
+        'message': message,
+        'timestamp': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+
+      txn.set(conversationRef, {
+        'lastMessage': message,
+        'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastMessageSenderId': currentUser.uid,
+        'unread': unread,
+      }, SetOptions(merge: true));
+    });
+  }
+
+  Future<void> markConversationRead(String conversationId) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    final ref = _db.collection(_conversationsCollection).doc(conversationId);
+    await _db.runTransaction((txn) async {
+      final snap = await txn.get(ref);
+      if (!snap.exists) return;
+      final data = snap.data() as Map<String, dynamic>;
+      final unreadRaw = data['unread'] as Map?;
+      final unread =
+          unreadRaw?.map(
+            (k, v) => MapEntry(k.toString(), (v as num?)?.toInt() ?? 0),
+          ) ??
+          <String, int>{};
+      unread[currentUser.uid] = 0;
+      txn.set(ref, {'unread': unread}, SetOptions(merge: true));
+    });
+  }
+
   /// Create or get conversation ID from two user IDs
   String _getConversationId(String userId1, String userId2) {
     final ids = [userId1, userId2]..sort();
@@ -24,7 +198,6 @@ class MessagingService {
 
     final conversationId = _getConversationId(currentUser.uid, receiverId);
     final messageId = _db.collection(_messagesCollection).doc().id;
-    final timestamp = DateTime.now();
 
     // Get sender name
     final senderDoc = await _db.collection('users').doc(currentUser.uid).get();
@@ -65,13 +238,15 @@ class MessagingService {
     return _db
         .collection(_messagesCollection)
         .where('conversationId', isEqualTo: conversationId)
-        .orderBy('timestamp', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final messages = snapshot.docs
               .map((doc) => MessageModel.fromJson(doc.data()))
-              .toList(),
-        );
+              .toList();
+          // Sort by timestamp descending (newest first)
+          messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return messages;
+        });
   }
 
   /// Get all conversations for current user (Real-time)
@@ -80,19 +255,18 @@ class MessagingService {
 
     return _db
         .collection(_conversationsCollection)
-        .where(
-          Filter.or(
-            Filter('user1Id', isEqualTo: currentUserId),
-            Filter('user2Id', isEqualTo: currentUserId),
-          ),
-        )
-        .orderBy('lastMessageTime', descending: true)
+        .where('participants', arrayContains: currentUserId)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final conversations = snapshot.docs
               .map((doc) => ConversationModel.fromJson(doc.data()))
-              .toList(),
-        );
+              .toList();
+          // Sort by lastMessageTime descending
+          conversations.sort((a, b) {
+            return b.lastMessageTime.compareTo(a.lastMessageTime);
+          });
+          return conversations;
+        });
   }
 
   /// Mark message as read

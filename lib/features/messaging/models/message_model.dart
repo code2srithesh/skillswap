@@ -44,49 +44,102 @@ class MessageModel {
 
 class ConversationModel {
   final String id;
-  final String user1Id;
-  final String user2Id;
-  final String user1Name;
-  final String user2Name;
+  final List<String> participants;
+  final Map<String, String> participantNames;
+  final String? swapId;
+  final String? postId;
   final String lastMessage;
   final DateTime lastMessageTime;
-  final int unreadCount;
+  final Map<String, int> unread;
 
   ConversationModel({
     required this.id,
-    required this.user1Id,
-    required this.user2Id,
-    required this.user1Name,
-    required this.user2Name,
+    required this.participants,
+    required this.participantNames,
+    this.swapId,
+    this.postId,
     required this.lastMessage,
     required this.lastMessageTime,
-    this.unreadCount = 0,
+    this.unread = const {},
   });
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'user1Id': user1Id,
-      'user2Id': user2Id,
-      'user1Name': user1Name,
-      'user2Name': user2Name,
+      'participants': participants,
+      'participantNames': participantNames,
+      'swapId': swapId,
+      'postId': postId,
       'lastMessage': lastMessage,
       'lastMessageTime': lastMessageTime,
-      'unreadCount': unreadCount,
+      'unread': unread,
     };
   }
 
   factory ConversationModel.fromJson(Map<String, dynamic> json) {
+    final participantsRaw = json['participants'];
+    final participants = participantsRaw is List
+        ? participantsRaw.map((e) => e.toString()).toList()
+        : <String>[];
+
+    final participantNamesRaw = json['participantNames'];
+    final participantNames = participantNamesRaw is Map
+        ? participantNamesRaw.map(
+            (k, v) => MapEntry(k.toString(), v.toString()),
+          )
+        : <String, String>{};
+
+    // Backward compatibility for old schema (user1Id/user2Id)
+    final user1Id = (json['user1Id'] ?? '').toString();
+    final user2Id = (json['user2Id'] ?? '').toString();
+    if (participants.isEmpty && user1Id.isNotEmpty && user2Id.isNotEmpty) {
+      participants.addAll([user1Id, user2Id]);
+    }
+    if (participantNames.isEmpty) {
+      final user1Name = (json['user1Name'] ?? '').toString();
+      final user2Name = (json['user2Name'] ?? '').toString();
+      if (user1Id.isNotEmpty && user1Name.isNotEmpty) {
+        participantNames[user1Id] = user1Name;
+      }
+      if (user2Id.isNotEmpty && user2Name.isNotEmpty) {
+        participantNames[user2Id] = user2Name;
+      }
+    }
+
+    final unreadRaw = json['unread'];
+    final unread = unreadRaw is Map
+        ? unreadRaw.map(
+            (k, v) => MapEntry(k.toString(), (v as num?)?.toInt() ?? 0),
+          )
+        : <String, int>{};
+
     return ConversationModel(
       id: json['id'] ?? '',
-      user1Id: json['user1Id'] ?? '',
-      user2Id: json['user2Id'] ?? '',
-      user1Name: json['user1Name'] ?? '',
-      user2Name: json['user2Name'] ?? '',
+      participants: participants,
+      participantNames: participantNames,
+      swapId: json['swapId']?.toString(),
+      postId: json['postId']?.toString(),
       lastMessage: json['lastMessage'] ?? '',
       lastMessageTime:
           (json['lastMessageTime'] as dynamic)?.toDate() ?? DateTime.now(),
-      unreadCount: json['unreadCount'] ?? 0,
+      unread: unread,
     );
+  }
+
+  String otherUserId(String currentUserId) {
+    return participants.firstWhere(
+      (id) => id != currentUserId,
+      orElse: () => '',
+    );
+  }
+
+  String otherUserName(String currentUserId) {
+    final otherId = otherUserId(currentUserId);
+    return participantNames[otherId] ?? 'User';
+  }
+
+  int unreadCountFor(String currentUserId) {
+    // unread map stores *unread messages for that user*
+    return unread[currentUserId] ?? 0;
   }
 }

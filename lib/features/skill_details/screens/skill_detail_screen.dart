@@ -271,6 +271,8 @@ class SkillDetailScreen extends StatelessWidget {
                   senderName: user.email ?? "Unknown",
                   message: messageController.text.trim(),
                   skillOffered: post.learnSkill,
+                  postId: post.id,
+                  postOwnerName: post.userName,
                 );
 
                 if (context.mounted) {
