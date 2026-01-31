@@ -3,9 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/post_model.dart';
 import '../services/database_service.dart';
 import 'post_skill_screen.dart';
+import 'my_swaps_screen.dart';
+import 'activity_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../profile/screens/user_profile_screen.dart';
 import '../../skill_details/screens/skill_detail_screen.dart';
+import '../../messaging/screens/conversations_screen.dart';
 import '../../../core/theme.dart';
 import '../../../core/animations.dart';
 import '../../../core/widgets/glass_card.dart';
@@ -22,16 +25,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final DatabaseService _dbService = DatabaseService();
 
   void _onItemTapped(int index) {
-    if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const PostSkillScreen()),
-      );
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   // Pull to refresh function
@@ -148,7 +144,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       );
+    } else if (_selectedIndex == 1) {
+      currentBody = const ActivityScreen();
     } else if (_selectedIndex == 2) {
+      currentBody = const ConversationsScreen();
+    } else if (_selectedIndex == 3) {
       currentBody = const ProfileScreen();
     } else {
       currentBody = Container();
@@ -510,7 +510,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       child: BottomNavigationBar(
-        currentIndex: _selectedIndex == 1 ? 0 : _selectedIndex,
+        currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
         selectedItemColor: AppTheme.primaryColor,
@@ -532,8 +532,12 @@ class _HomeScreenState extends State<HomeScreen> {
             label: "Discover",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle, size: 40),
-            label: "",
+            icon: Icon(Icons.notifications_active_rounded, size: 24),
+            label: "Activity",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_rounded, size: 24),
+            label: "Inbox",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_rounded, size: 24),
@@ -544,7 +548,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Modern FAB
+  /// Modern FAB for Post Skill
   Widget _buildModernFAB() {
     return PulseAnimation(
       child: FloatingActionButton(

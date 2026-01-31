@@ -138,10 +138,6 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: Text(
           'Create Account',
           style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700),

@@ -1,11 +1,11 @@
 {
-    "name": "skillswap",
-    "short_name": "skillswap",
+    "name": "SkillSwap",
+    "short_name": "SkillSwap",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "The exclusive peer-to-peer skill exchange platform for students. Teach what you know, learn what you love.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
