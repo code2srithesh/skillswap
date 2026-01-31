@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/post_model.dart';
 import '../services/database_service.dart';
 import 'post_skill_screen.dart';
-import 'my_swaps_screen.dart';
 import 'activity_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../profile/screens/user_profile_screen.dart';
@@ -14,6 +14,7 @@ import '../../messaging/screens/conversations_screen.dart';
 import '../../../core/theme.dart';
 import '../../../core/animations.dart';
 import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/premium_background.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -126,21 +127,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 final posts = snapshot.data!;
                 return CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
+                  physics: const BouncingScrollPhysics(),
                   slivers: [
-                    // Header with Gradient Background
-                    SliverAppBar(
-                      floating: true,
-                      snap: true,
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                      expandedHeight: 180,
-                      flexibleSpace: FlexibleSpaceBar(
-                        background: _buildHeaderBackground(isDark),
-                      ),
-                    ),
+                    // Premium Header
+                    SliverToBoxAdapter(child: _buildPremiumHeader(isDark)),
 
-                    // Posts List
+                    // Posts List with staggered animation
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -149,15 +141,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
                           final post = posts[index];
-                          return FadeInUpAnimation(
-                            duration: Duration(
-                              milliseconds: 300 + (index * 100),
-                            ),
-                            child: _buildModernSkillCard(post, context),
+                          return StaggeredItem(
+                            index: index,
+                            child: _buildPremiumSkillCard(post, context),
                           );
                         }, childCount: posts.length),
                       ),
                     ),
+
+                    // Bottom spacing for FAB
+                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
                   ],
                 );
               },
@@ -176,28 +169,451 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: _selectedIndex == 0
-          ? null
-          : AppBar(
-              title: Text(
-                "SkillSwap",
-                style: GoogleFonts.poppins(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
+      backgroundColor: Colors.transparent,
+      body: PremiumBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom App Bar for non-discover screens
+              if (_selectedIndex != 0)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _selectedIndex == 1
+                            ? "Activity"
+                            : _selectedIndex == 2
+                            ? "Inbox"
+                            : "Profile",
+                        style: GoogleFonts.poppins(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              centerTitle: true,
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-            ),
-      body: currentBody,
-      bottomNavigationBar: _buildModernBottomNav(context),
-      floatingActionButton: _buildModernFAB(),
+              // Main Content
+              Expanded(child: currentBody),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: _buildPremiumBottomNav(context),
+      floatingActionButton: _buildPremiumFAB(),
     );
   }
 
-  /// Modern Header Background with Gradient
+  /// Premium Bottom Navigation Bar with glassmorphism
+  Widget _buildPremiumBottomNav(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? const Color(0xFF1A1A2E).withOpacity(0.95)
+                  : Colors.white.withOpacity(0.95),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark
+                    ? const Color(0xFF6366F1).withOpacity(0.2)
+                    : Colors.grey.withOpacity(0.15),
+                width: 1.5,
+              ),
+              boxShadow: [
+                if (isDark)
+                  BoxShadow(
+                    color: const Color(0xFF6366F1).withOpacity(0.15),
+                    blurRadius: 30,
+                    offset: const Offset(0, -5),
+                  ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.4 : 0.1),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.explore_rounded, "Discover"),
+                _buildNavItem(
+                  1,
+                  Icons.notifications_active_rounded,
+                  "Activity",
+                ),
+                _buildNavItemWithBadge(2, Icons.chat_rounded, "Inbox"),
+                _buildNavItem(3, Icons.person_rounded, "Profile"),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _selectedIndex == index;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return BouncyTap(
+      onTap: () => _onItemTapped(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primaryColor.withOpacity(0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 24,
+              color: isSelected
+                  ? AppTheme.primaryColor
+                  : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? AppTheme.primaryColor
+                    : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItemWithBadge(int index, IconData icon, String label) {
+    final isSelected = _selectedIndex == index;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return BouncyTap(
+      onTap: () => _onItemTapped(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primaryColor.withOpacity(0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StreamBuilder<int>(
+              stream: _getUnreadCount(),
+              builder: (context, snapshot) {
+                final count = snapshot.data ?? 0;
+                return Badge(
+                  label: Text('$count', style: const TextStyle(fontSize: 10)),
+                  isLabelVisible: count > 0,
+                  backgroundColor: Colors.red,
+                  child: Icon(
+                    icon,
+                    size: 24,
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : (isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? AppTheme.primaryColor
+                    : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Premium FAB with gradient
+  Widget _buildPremiumFAB() {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: AppTheme.accentGradientBrush,
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: BouncyTap(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PostSkillScreen()),
+          );
+        },
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: const BoxDecoration(shape: BoxShape.circle),
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+        ),
+      ),
+    );
+  }
+
+  /// Premium Header
+  Widget _buildPremiumHeader(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.accentGradientBrush,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withOpacity(0.3),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Discover Skills",
+                      style: GoogleFonts.poppins(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      "Find amazing teachers and learners",
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Premium Skill Card with enhanced design
+  Widget _buildPremiumSkillCard(PostModel post, BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: PremiumCard(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SkillDetailScreen(post: post),
+            ),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // User Header
+            Row(
+              children: [
+                PremiumAvatar(name: post.userName, size: 52),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post.userName,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        post.role,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppTheme.primaryColor.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 14,
+                        color: AppTheme.primaryColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        "View",
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Skills Section with premium styling
+            Row(
+              children: [
+                Expanded(
+                  child: _buildPremiumSkillChip(
+                    "Teaches",
+                    post.teachSkill,
+                    const Color(0xFF10B981),
+                    isDark,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Icon(
+                  Icons.swap_horiz_rounded,
+                  color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildPremiumSkillChip(
+                    "Wants",
+                    post.learnSkill,
+                    const Color(0xFF8B5CF6),
+                    isDark,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Premium Skill Chip
+  Widget _buildPremiumSkillChip(
+    String label,
+    String skill,
+    Color color,
+    bool isDark,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: color.withOpacity(0.1),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: color,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            skill,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ignore: unused_element
   Widget _buildHeaderBackground(bool isDark) {
     return Stack(
       children: [
@@ -266,6 +682,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Modern Skill Card with Enhanced Design
+  // ignore: unused_element
   Widget _buildModernSkillCard(PostModel post, BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textTheme = Theme.of(context).textTheme;
@@ -517,6 +934,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Modern Bottom Navigation Bar
+  // ignore: unused_element
   Widget _buildModernBottomNav(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -581,6 +999,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Modern FAB for Post Skill
+  // ignore: unused_element
   Widget _buildModernFAB() {
     return PulseAnimation(
       child: FloatingActionButton(

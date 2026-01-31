@@ -3,12 +3,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
-import 'core/modern_theme.dart';
+import 'core/theme.dart';
 import 'core/theme_provider.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/home/screens/home_screen.dart';
 
-// 1. Convert main() to async to wait for Firebase
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -28,8 +27,9 @@ class SkillSwapApp extends StatelessWidget {
             title: 'SkillSwap',
             debugShowCheckedModeBanner: false,
 
-            theme: ModernTheme.lightTheme,
-            darkTheme: ModernTheme.darkTheme,
+            // Apply Premium Dark Theme by default
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
 
             // Authentication Router
@@ -38,10 +38,10 @@ class SkillSwapApp extends StatelessWidget {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Scaffold(
-                    backgroundColor: Colors.transparent,
+                    backgroundColor: AppTheme.scaffoldBg,
                     body: Center(
                       child: CircularProgressIndicator(
-                        color: Theme.of(context).primaryColor,
+                        color: AppTheme.primaryColor,
                       ),
                     ),
                   );

@@ -6,8 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../messaging/screens/chat_screen.dart';
 import '../../messaging/services/messaging_service.dart';
 import '../../../core/theme.dart';
-import '../../../core/animations.dart';
-import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/premium_background.dart';
 
 class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key});
@@ -36,7 +35,6 @@ class _ActivityScreenState extends State<ActivityScreen>
     super.dispose();
   }
 
-  /// Fetch pending requests that need action
   Stream<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
   _getPendingRequests() {
     return _db
@@ -47,7 +45,6 @@ class _ActivityScreenState extends State<ActivityScreen>
         .map((s) => s.docs);
   }
 
-  /// Fetch accepted matches
   Stream<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _getMatches() {
     return _db
         .collection('requests')
@@ -109,6 +106,8 @@ class _ActivityScreenState extends State<ActivityScreen>
       SnackBar(
         content: Text('Request accepted! You can now chat with $requesterName'),
         backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         action: SnackBarAction(
           label: 'Chat',
           textColor: Colors.white,
@@ -139,9 +138,11 @@ class _ActivityScreenState extends State<ActivityScreen>
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Request rejected'),
+      SnackBar(
+        content: const Text('Request rejected'),
         backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -150,36 +151,75 @@ class _ActivityScreenState extends State<ActivityScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'Activity',
-          style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppTheme.primaryColor,
-          indicatorWeight: 3,
-          labelStyle: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+    return Column(
+      children: [
+        // Premium Tab Bar
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withOpacity(0.05)
+                : Colors.black.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(16),
           ),
-          tabs: const [
-            Tab(text: 'Requests'),
-            Tab(text: 'Matches'),
-          ],
+          child: TabBar(
+            controller: _tabController,
+            indicator: BoxDecoration(
+              gradient: AppTheme.accentGradientBrush,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            indicatorSize: TabBarIndicatorSize.tab,
+            dividerColor: Colors.transparent,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.grey,
+            labelStyle: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            tabs: [
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.inbox_rounded, size: 18),
+                    SizedBox(width: 6),
+                    Text('Requests'),
+                  ],
+                ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.handshake_rounded, size: 18),
+                    SizedBox(width: 6),
+                    Text('Matches'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [_buildRequestsTab(isDark), _buildMatchesTab(isDark)],
-      ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            physics: const BouncingScrollPhysics(),
+            children: [_buildRequestsTab(isDark), _buildMatchesTab(isDark)],
+          ),
+        ),
+      ],
     );
   }
 
@@ -192,86 +232,36 @@ class _ActivityScreenState extends State<ActivityScreen>
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(
-                child: ShimmerAnimation(
-                  child: CircularProgressIndicator(
-                    color: AppTheme.primaryColor,
-                  ),
+                child: CircularProgressIndicator(
+                  color: AppTheme.primaryColor,
+                  strokeWidth: 2,
                 ),
               );
             }
 
             if (snapshot.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 60,
-                      color: Colors.red.shade300,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Unable to load requests',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              );
+              return _buildErrorState('Unable to load requests');
             }
 
             final requests = snapshot.data ?? [];
 
             if (requests.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: AppTheme.accentGradientBrush,
-                      ),
-                      child: const Icon(
-                        Icons.check_circle_outline,
-                        size: 50,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'All Caught Up!',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'No pending requests',
-                      style: GoogleFonts.inter(
-                        color: Colors.grey.shade600,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
+              return _buildEmptyState(
+                icon: Icons.check_circle_outline_rounded,
+                title: 'All Caught Up!',
+                subtitle: 'No pending requests',
               );
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              physics: const BouncingScrollPhysics(),
               itemCount: requests.length,
               itemBuilder: (context, index) {
                 final requestDoc = requests[index];
                 final data = requestDoc.data();
-                return FadeInUpAnimation(
-                  duration: Duration(milliseconds: 300 + (index * 100)),
+                return StaggeredItem(
+                  index: index,
                   child: _buildRequestCard(requestDoc, data, isDark),
                 );
               },
@@ -294,154 +284,207 @@ class _ActivityScreenState extends State<ActivityScreen>
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: GlassCard(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: AppTheme.accentGradientBrush,
-                    ),
-                    child: Center(
-                      child: Text(
-                        requesterName.isNotEmpty
-                            ? requesterName[0].toUpperCase()
-                            : '?',
+      child: PremiumCard(
+        hasGlow: true,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                PremiumAvatar(name: requesterName, size: 48),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        requesterName,
                         style: GoogleFonts.poppins(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          requesterName,
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.amber.shade400,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'wants to swap skills',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
+                          const SizedBox(width: 6),
+                          Text(
+                            'Wants to swap skills',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.primaryColor.withOpacity(0.3),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.school_rounded,
-                          size: 16,
-                          color: AppTheme.primaryColor,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'They teach: $teachSkill',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.primaryColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.lightbulb_rounded,
-                          size: 16,
-                          color: Colors.amber.shade600,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'You teach: $learnSkill',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.amber.shade600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Skills info
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryColor.withOpacity(0.1),
+                    const Color(0xFF8B5CF6).withOpacity(0.1),
                   ],
                 ),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppTheme.primaryColor.withOpacity(0.2),
+                ),
               ),
-              const SizedBox(height: 16),
-              Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _acceptRequest(doc),
-                      icon: const Icon(Icons.check_circle, size: 20),
-                      label: const Text('Accept'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
+                  _buildSkillRow(
+                    Icons.school_rounded,
+                    'They teach',
+                    teachSkill,
+                    AppTheme.primaryColor,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _rejectRequest(doc),
-                      icon: const Icon(Icons.cancel, size: 20),
-                      label: const Text('Reject'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
+                  const SizedBox(height: 10),
+                  _buildSkillRow(
+                    Icons.lightbulb_rounded,
+                    'You teach',
+                    learnSkill,
+                    Colors.amber.shade600,
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: BouncyTap(
+                    onTap: () => _acceptRequest(doc),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF10B981), Color(0xFF059669)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Accept',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: BouncyTap(
+                    onTap: () => _rejectRequest(doc),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.red.withOpacity(0.5),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.close_rounded,
+                            color: Colors.red.shade400,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Decline',
+                            style: GoogleFonts.poppins(
+                              color: Colors.red.shade400,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSkillRow(
+    IconData icon,
+    String label,
+    String skill,
+    Color color,
+  ) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: color),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          '$label: ',
+          style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade500),
+        ),
+        Expanded(
+          child: Text(
+            skill,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -454,86 +497,36 @@ class _ActivityScreenState extends State<ActivityScreen>
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(
-                child: ShimmerAnimation(
-                  child: CircularProgressIndicator(
-                    color: AppTheme.primaryColor,
-                  ),
+                child: CircularProgressIndicator(
+                  color: AppTheme.primaryColor,
+                  strokeWidth: 2,
                 ),
               );
             }
 
             if (snapshot.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 60,
-                      color: Colors.red.shade300,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Unable to load matches',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              );
+              return _buildErrorState('Unable to load matches');
             }
 
             final matches = snapshot.data ?? [];
 
             if (matches.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.primaryColor.withOpacity(0.1),
-                      ),
-                      child: Icon(
-                        Icons.handshake_outlined,
-                        size: 50,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'No Matches Yet',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Accept requests to start swapping!',
-                      style: GoogleFonts.inter(
-                        color: Colors.grey.shade600,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
+              return _buildEmptyState(
+                icon: Icons.handshake_outlined,
+                title: 'No Matches Yet',
+                subtitle: 'Accept requests to start swapping!',
               );
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              physics: const BouncingScrollPhysics(),
               itemCount: matches.length,
               itemBuilder: (context, index) {
                 final matchDoc = matches[index];
                 final data = matchDoc.data();
-                return FadeInUpAnimation(
-                  duration: Duration(milliseconds: 300 + (index * 100)),
+                return StaggeredItem(
+                  index: index,
                   child: _buildMatchCard(matchDoc.id, data, isDark),
                 );
               },
@@ -562,7 +555,7 @@ class _ActivityScreenState extends State<ActivityScreen>
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: GlassCard(
+      child: BouncyTap(
         onTap: () {
           Navigator.push(
             context,
@@ -575,34 +568,16 @@ class _ActivityScreenState extends State<ActivityScreen>
             ),
           );
         },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        child: PremiumCard(
+          hasGlow: true,
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: AppTheme.accentGradientBrush,
-                    ),
-                    child: Center(
-                      child: Text(
-                        otherPersonName.toString().isNotEmpty
-                            ? otherPersonName.toString()[0].toUpperCase()
-                            : '?',
-                        style: GoogleFonts.poppins(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
+                  PremiumAvatar(name: otherPersonName.toString(), size: 48),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -614,59 +589,93 @@ class _ActivityScreenState extends State<ActivityScreen>
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Text(
-                          'Match accepted',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF10B981),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Match accepted',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: const Color(0xFF10B981),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatScreen(
-                            conversationId: data['conversationId'] ?? matchId,
-                            fallbackOtherUserId: otherUserId,
-                            fallbackOtherUserName: otherPersonName.toString(),
-                          ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.accentGradientBrush,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                      );
-                    },
-                    icon: Icon(
-                      Icons.chat_rounded,
-                      color: AppTheme.primaryColor,
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.chat_bubble_rounded,
+                      color: Colors.white,
+                      size: 18,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
+              // Skill swap info
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF10B981).withOpacity(isDark ? 0.15 : 0.1),
+                      const Color(0xFF059669).withOpacity(isDark ? 0.1 : 0.05),
+                    ],
+                  ),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.shade200),
+                  border: Border.all(
+                    color: const Color(0xFF10B981).withOpacity(0.2),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.swap_horiz_rounded,
-                      color: Colors.green.shade700,
-                      size: 20,
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.swap_horiz_rounded,
+                        color: Color(0xFF10B981),
+                        size: 18,
+                      ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         '$teachSkill ↔ $learnSkill',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: Colors.green.shade700,
+                          color: const Color(0xFF10B981),
                         ),
                       ),
                     ),
@@ -676,6 +685,80 @@ class _ActivityScreenState extends State<ActivityScreen>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: AppTheme.accentGradientBrush,
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withOpacity(0.3),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Icon(icon, size: 50, color: Colors.white),
+          ),
+          const SizedBox(height: 28),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 15),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.red.withOpacity(0.1),
+            ),
+            child: Icon(
+              Icons.error_outline_rounded,
+              size: 50,
+              color: Colors.red.shade400,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            message,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
