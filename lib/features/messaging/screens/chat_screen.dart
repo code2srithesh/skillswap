@@ -32,6 +32,22 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _messagingService.markConversationRead(widget.conversationId);
+    _markMessagesAsRead();
+  }
+
+  // Mark all messages in this conversation as read
+  Future<void> _markMessagesAsRead() async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final messages = await FirebaseFirestore.instance
+        .collection('messages')
+        .where('conversationId', isEqualTo: widget.conversationId)
+        .where('receiverId', isEqualTo: currentUserId)
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    for (var doc in messages.docs) {
+      await doc.reference.update({'isRead': true});
+    }
   }
 
   void _sendMessage() async {
@@ -280,14 +296,31 @@ class _ChatScreenState extends State<ChatScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    TimeFormatter.formatTime(message.timestamp),
-                                    style: GoogleFonts.inter(
-                                      fontSize: 10,
-                                      color: isCurrentUser
-                                          ? Colors.white70
-                                          : Colors.grey.shade500,
-                                    ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        TimeFormatter.formatTime(message.timestamp),
+                                        style: GoogleFonts.inter(
+                                          fontSize: 10,
+                                          color: isCurrentUser
+                                              ? Colors.white70
+                                              : Colors.grey.shade500,
+                                        ),
+                                      ),
+                                      if (isCurrentUser) ...[
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          message.isRead
+                                              ? Icons.done_all_rounded
+                                              : Icons.done_rounded,
+                                          size: 14,
+                                          color: message.isRead
+                                              ? Colors.blue.shade300
+                                              : Colors.white70,
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ],
                               ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/post_model.dart';
 import '../services/database_service.dart';
 import 'post_skill_screen.dart';
@@ -28,6 +30,25 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  // Get total unread message count
+  Stream<int> _getUnreadCount() {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    return FirebaseFirestore.instance
+        .collection('conversations')
+        .where('participants', arrayContains: currentUserId)
+        .snapshots()
+        .map((snapshot) {
+          int total = 0;
+          for (var doc in snapshot.docs) {
+            final data = doc.data();
+            final unreadRaw = data['unread'] as Map?;
+            final count = (unreadRaw?[currentUserId] as num?)?.toInt() ?? 0;
+            total += count;
+          }
+          return total;
+        });
   }
 
   // Pull to refresh function
@@ -526,20 +547,31 @@ class _HomeScreenState extends State<HomeScreen> {
           fontSize: 11,
           fontWeight: FontWeight.w500,
         ),
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.explore_rounded, size: 24),
             label: "Discover",
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.notifications_active_rounded, size: 24),
             label: "Activity",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat_rounded, size: 24),
+            icon: StreamBuilder<int>(
+              stream: _getUnreadCount(),
+              builder: (context, snapshot) {
+                final count = snapshot.data ?? 0;
+                return Badge(
+                  label: Text('$count'),
+                  isLabelVisible: count > 0,
+                  backgroundColor: Colors.red,
+                  child: const Icon(Icons.chat_rounded, size: 24),
+                );
+              },
+            ),
             label: "Inbox",
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_rounded, size: 24),
             label: "Profile",
           ),
