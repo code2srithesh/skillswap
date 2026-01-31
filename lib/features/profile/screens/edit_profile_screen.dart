@@ -131,11 +131,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'username': _usernameController.text.trim(),
       };
 
-      // If a new image was picked, turn it into text and save it
-      String? newImageString = _convertImageToBase64();
-      if (newImageString != null) {
-        updateData['photoUrl'] = newImageString;
+      // Handle photo updates: new upload, removal, or no change
+      if (_webImage != null) {
+        // New image was picked
+        String? newImageString = _convertImageToBase64();
+        if (newImageString != null) {
+          updateData['photoUrl'] = newImageString;
+        }
+      } else if (_photoUrl == null) {
+        // Photo was explicitly removed
+        updateData['photoUrl'] = '';
       }
+      // If _photoUrl is not null and _webImage is null, keep existing photo (no change)
 
       // Update Firestore directly
       await FirebaseFirestore.instance
@@ -189,13 +196,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
 
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.photo_library_rounded),
-                label: const Text('Upload Photo'),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.photo_library_rounded),
+                    label: const Text('Upload Photo'),
+                  ),
+                ),
+                if ((_photoUrl != null && _photoUrl!.isNotEmpty) ||
+                    _webImage != null) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _webImage = null;
+                          _photoUrl = null;
+                        });
+                      },
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      label: const Text(
+                        'Remove Photo',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.red),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
 
             const SizedBox(height: 32),

@@ -18,6 +18,42 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   String _keyword = "";
+  Set<String> _acceptedUserIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAcceptedUsers();
+  }
+
+  // Load all users with whom current user has accepted requests
+  Future<void> _loadAcceptedUsers() async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (currentUserId.isEmpty) return;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('requests')
+        .where('participants', arrayContains: currentUserId)
+        .where('status', isEqualTo: 'accepted')
+        .get();
+
+    final Set<String> acceptedIds = {};
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final participants = List<String>.from(data['participants'] ?? []);
+      for (var userId in participants) {
+        if (userId != currentUserId) {
+          acceptedIds.add(userId);
+        }
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _acceptedUserIds = acceptedIds;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -112,11 +148,15 @@ class _SearchScreenState extends State<SearchScreen> {
                       learn.contains(search);
                   final isNotOwnPost = postUserId != currentUserId;
                   final notSwapped = !isSwapped;
+                  final noAcceptedRequest = !_acceptedUserIds.contains(
+                    postUserId,
+                  );
 
                   return matchesSearch &&
                       isNotOwnPost &&
                       notSwapped &&
-                      isDiscoverable;
+                      isDiscoverable &&
+                      noAcceptedRequest;
                 }).toList();
 
                 if (filteredDocs.isEmpty) {
