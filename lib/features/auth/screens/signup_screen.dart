@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
-import '../../home/services/database_service.dart';
 import '../../../core/theme.dart';
+import '../../../core/widgets/premium_background.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -13,294 +14,170 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  // Controllers
   final _nameController = TextEditingController();
-  final _roleController = TextEditingController(); // e.g., "2nd Year CSE"
+  final _usernameController = TextEditingController(); // Added Username
+  final _roleController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-
-  // Services
   final _authService = AuthService();
-  final _dbService = DatabaseService();
 
   bool _isLoading = false;
-  String? _emailError;
-  String? _nameError;
-  String? _roleError;
 
+  // Auto-fill VIT domain
   @override
   void initState() {
     super.initState();
-    // Add listener to auto-complete email domain
-    _emailController.addListener(_autoCompleteEmail);
-  }
-
-  void _autoCompleteEmail() {
-    String text = _emailController.text;
-    // Only auto-complete if @ is typed and there's text before it
-    if (text.contains('@') && !text.endsWith('@vitapstudent.ac.in')) {
-      String localPart = text.split('@')[0];
-      if (localPart.isNotEmpty) {
-        _emailController.removeListener(_autoCompleteEmail);
-        _emailController.text = '$localPart@vitapstudent.ac.in';
-        _emailController.selection = TextSelection.collapsed(
-          offset: localPart.length,
-        );
-        _emailController.addListener(_autoCompleteEmail);
+    _emailController.addListener(() {
+      final text = _emailController.text;
+      if (text.contains('@') && !text.endsWith('@vitapstudent.ac.in')) {
+        final local = text.split('@')[0];
+        if (local.isNotEmpty) {
+           _emailController.value = TextEditingValue(
+             text: '$local@vitapstudent.ac.in',
+             selection: TextSelection.collapsed(offset: local.length),
+           );
+        }
       }
-    }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _roleController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  void _validateAndSignup() async {
-    // Clear previous errors
-    setState(() {
-      _emailError = null;
-      _nameError = null;
-      _roleError = null;
     });
-
-    final email = _emailController.text.trim();
-    final name = _nameController.text.trim();
-    final role = _roleController.text.trim();
-
-    // Validate email
-    if (email.isEmpty) {
-      setState(() => _emailError = "Email is required");
-      return;
-    }
-
-    if (!email.endsWith("@vitapstudent.ac.in")) {
-      setState(
-        () => _emailError = "Only @vitapstudent.ac.in emails are allowed",
-      );
-      return;
-    }
-
-    // Validate name
-    if (name.isEmpty) {
-      setState(() => _nameError = "Name is required");
-      return;
-    }
-
-    // Validate role
-    if (role.isEmpty) {
-      setState(() => _roleError = "Year & Branch is required");
-      return;
-    }
-
-    // All validation passed, proceed with signup
-    _handleSignup(email, name, role);
   }
 
-  Future<void> _handleSignup(String email, String name, String role) async {
+  void _handleSignup() async {
+    if (_nameController.text.isEmpty || 
+        _usernameController.text.isEmpty ||
+        _roleController.text.isEmpty ||
+        _emailController.text.isEmpty || 
+        _passwordController.text.isEmpty) {
+      _showError("Please fill all fields");
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      // 1. Create Auth User
+      // 1. Create User
       User? user = await _authService.signUp(
-        email,
+        _emailController.text.trim(),
         _passwordController.text.trim(),
       );
 
-      // 2. Create Database Profile
       if (user != null) {
-        await _dbService.createUserProfile(user.uid, user.email!, name, role);
+        // 2. Create Database Profile
+        // IMPORTANT: Use set() with merge: true to avoid crashes
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'name': _nameController.text.trim(),
+          'username': _usernameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'role': _roleController.text.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'photoUrl': '',
+          'bio': 'Student at VIT-AP',
+        }, SetOptions(merge: true));
 
-        // 3. Success -> Go Home
+        // 3. Show Verification Dialog instead of going Home
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF1A1F3A),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text("Verify Your Email", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+              content: Text(
+                "We have sent a verification link to ${_emailController.text}.\n\nPlease check your inbox (and spam folder) and verify your email before logging in.",
+                style: GoogleFonts.inter(color: Colors.grey.shade300),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); // Go back to Login Screen
+                  },
+                  child: Text("OK, I'll Check", style: GoogleFonts.outfit(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
+                )
+              ],
+            ),
+          );
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
-        );
-      }
+      if (mounted) _showError(e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: Colors.red,
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
-      appBar: AppBar(
-        title: Text(
-          'Create Account',
-          style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700),
-        ),
-        centerTitle: true,
-        elevation: 0,
+    return PremiumBackground(
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              "Join SkillSwap Community",
-              style: GoogleFonts.poppins(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Create your profile and start learning",
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-
-            // Name Field
-            Text(
-              'Full Name',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: "Your full name",
-                prefixIcon: const Icon(Icons.person_outlined),
-                errorText: _nameError,
-                hintStyle: GoogleFonts.inter(),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Role Field
-            Text(
-              'Year & Branch',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _roleController,
-              decoration: InputDecoration(
-                labelText: "e.g., 3rd Year CSE",
-                prefixIcon: const Icon(Icons.school_outlined),
-                errorText: _roleError,
-                hintStyle: GoogleFonts.inter(),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Email Field
-            Text(
-              'VIT-AP Email Address',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(
-                labelText: "your.email@vitapstudent.ac.in",
-                prefixIcon: const Icon(Icons.email_outlined),
-                errorText: _emailError,
-                hintStyle: GoogleFonts.inter(),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Password Field
-            Text(
-              'Password',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: "Create a strong password",
-                prefixIcon: const Icon(Icons.lock_outlined),
-                hintStyle: GoogleFonts.inter(),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Signup Button
-            SizedBox(
-              height: 48,
-              child: _isLoading
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        color: AppTheme.primaryColor,
-                      ),
-                    )
-                  : ElevatedButton(
-                      onPressed: _validateAndSignup,
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, leading: BackButton(color: Colors.white)),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 450),
+              child: Column(
+                children: [
+                  Text("Create Account", style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 32),
+                  
+                  _buildField("Full Name", Icons.person, _nameController),
+                  const SizedBox(height: 16),
+                  _buildField("Username", Icons.alternate_email, _usernameController),
+                  const SizedBox(height: 16),
+                  _buildField("Year & Branch", Icons.school, _roleController),
+                  const SizedBox(height: 16),
+                  _buildField("VIT Email", Icons.email, _emailController),
+                  const SizedBox(height: 16),
+                  _buildField("Password", Icons.lock, _passwordController, isPass: true),
+                  
+                  const SizedBox(height: 32),
+                  
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _handleSignup,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text(
-                        "Create Account",
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-            ),
-            const SizedBox(height: 16),
-
-            // Login Link
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "Already have an account? ",
-                  style: GoogleFonts.inter(color: Colors.grey.shade600),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Sign In',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryColor,
+                      child: _isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text("Sign Up", style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildField(String hint, IconData icon, TextEditingController controller, {bool isPass = false}) {
+    return TextField(
+      controller: controller,
+      obscureText: isPass,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade500),
+        prefixIcon: Icon(icon, color: AppTheme.primaryColor),
+        filled: true,
+        fillColor: Colors.black.withOpacity(0.3),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       ),
     );
   }

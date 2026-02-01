@@ -30,7 +30,7 @@ class DatabaseService {
       'username': uniqueUsername,
       'role': role, // e.g. "3rd Year CSE"
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    }, SetOptions(merge: true));
   }
 
   // Generate a username from name
