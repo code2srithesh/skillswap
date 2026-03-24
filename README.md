@@ -1,121 +1,107 @@
-# SkillSwap
+# 🚀 SkillSwap: The Future of Peer-to-Peer Learning
 
-SkillSwap is a peer-to-peer skill exchange platform for college students. Users post what they can teach and what they want to learn, send swap requests, and once a swap is accepted they can chat inside a swap-scoped conversation.
+Welcome to **SkillSwap** — a next-generation skill exchange platform designed exclusively for college students. Share your expertise, discover new skills to learn, and collaborate seamlessly through our hyper-focused, swap-based messaging ecosystem.
 
-This repo contains a Flutter + Firebase app (Auth + Firestore + Hosting) and supports Web, Android, iOS, macOS, Windows, and Linux.
+Built for the modern web and beyond. Powered by a robust **Flutter & Firebase** architecture, supporting *Web, Android, iOS, macOS, Windows, and Linux*.
 
-## Key features
+---
 
-- Authentication
-	- Email sign-up/sign-in restricted to `@vitapstudent.ac.in`
-	- Google Sign-In (OAuth) with domain validation
-- Discover + Search
-	- Browse and search skill posts
-	- Posts can become hidden from discover after an accepted chat starts (business rule)
-- Swap workflow
-	- Swap requests show status: `pending` / `accepted` / `rejected`
-	- “My Swaps” screen to manage incoming + active swaps
-- Messaging
-	- Chat is swap-scoped (conversation is tied to a specific request)
-	- Chat becomes available after the swap is accepted
-	- Per-user unread tracking on conversations
-- Profiles
-	- Bio + username display
-	- Modern avatar picker (circular avatar rendering)
-- UI
-	- Material 3 design
-	- Light/Dark mode
+## ✨ Futuristic Features
 
-## Tech stack
+### 🔐 Secure Identity
+- **Smart Authentication**: Restricted `@vitapstudent.ac.in` domain sign-ups to keep the community safe.
+- **One-Tap OAuth**: Effortless Google Sign-In with strict domain validation.
 
-- Flutter (Dart)
-- Firebase Auth
-- Cloud Firestore
-- Firebase Hosting (web)
-- Provider (state management)
+### 🔍 Intelligent Discovery
+- **Dynamic Browsing & Search**: Find the exact skills you're looking for.
+- **Smart Visibility Control**: Accepted posts automatically vanish from the discovery feed to keep focus.
 
-## Requirements
+### 🤝 Seamless Swap Workflow
+- **Real-Time Swap Tracking**: Monitor requests in `Pending`, `Accepted`, or `Rejected` states.
+- **Centralized Command Center**: The "My Swaps" dashboard manages both incoming requests and active learning sessions.
 
-- Flutter SDK installed
-- For deployment: Firebase CLI (`firebase --version`)
+### 💬 Contextual Messaging
+- **Swap-Scoped Channels**: Every accepted swap generates a dedicated, isolated chat environment.
+- **Precision Unread Tracking**: Per-user read states for ultimate communication clarity.
 
-## Run locally
+### 👤 Modern Profiles & UI
+- **Fluid Bio & Identity**: Express yourself with personalized bios and circular avatar rendering.
+- **Adaptive UI**: Stunning **Material 3 Design** fully equipped with fluid Light & Dark modes.
 
+---
+
+## 🛠️ Cutting-Edge Stack
+
+- **Frontend**: Flutter (Dart) — Write once, deploy everywhere.
+- **Backend & Auth**: Firebase Authentication & Cloud Firestore
+- **Hosting**: Firebase Hosting (World-class CDN delivery)
+- **State Management**: Provider (Reactive & Scalable)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Latest [Flutter SDK](https://flutter.dev/docs/get-started/install) 
+- [Firebase CLI](https://firebase.google.com/docs/cli) (`firebase --version`)
+
+### Ignite Local Development
 ```bash
 flutter pub get
 flutter run -d chrome
 ```
-
-To run on another platform:
-
+*Targeting another platform? Easy:*
 ```bash
-flutter run -d android
-# or: ios / macos / windows / linux
+flutter run -d android  # Or ios, macos, windows, linux
 ```
 
-## Firebase configuration
-
-Firebase options are checked into the repo in `lib/firebase_options.dart`.
-
-Firebase project configuration files:
-- Web hosting config: `firebase.json`
-- Android: `android/app/google-services.json`
-- iOS: `ios/Runner/GoogleService-Info.plist`
-
-## Deploy (web)
-
+### Deploy to the Cloud (Web)
 ```bash
 flutter build web --release
 firebase deploy --only hosting
 ```
 
-## Folder structure (high level)
+---
 
-```
+## ⚙️ Configuration Matrix
+
+Firebase settings are pre-integrated into our repo:
+- **Global**: `lib/firebase_options.dart`
+- **Web**: `firebase.json`
+- **Android**: `android/app/google-services.json`
+- **iOS**: `ios/Runner/GoogleService-Info.plist`
+
+---
+
+## 📂 Architecture Mapping
+
+```text
 lib/
-	main.dart
-	firebase_options.dart
-	core/
-		theme.dart
-		theme_provider.dart
-		animations.dart
-		time_formatter.dart
-	features/
-		auth/
-			screens/
-			services/
-		home/
-			models/
-			screens/
-			services/
-			widgets/
-		messaging/
-			screens/
-			services/
-		profile/
-			screens/
-		skill_details/
-			screens/
-		swaps/
-			screens/
-test/
-	widget_test.dart
+├── main.dart                 # Application entry point
+├── firebase_options.dart     # Firebase generated configs
+├── core/                     # Foundational systems (Theme, Animations, Formatter)
+├── features/                 # Modular, feature-first architecture
+│   ├── auth/                 # Secure identity & access
+│   ├── home/                 # Main dashboards & dynamic feed
+│   ├── messaging/            # Real-time chat & socket handling
+│   ├── profile/              # User identity management
+│   ├── skill_details/        # Deep-dives into individual skills
+│   └── swaps/                # Stateful swap lifecycle management
+└── utils/                    # Shared tools & helpers
 ```
 
-## Core flows (how the app works)
+---
 
-1) User signs in (email or Google) → profile is available in Firestore.
+## 🧠 Core System Flows
 
-2) User creates a post → it appears in Discover/Search (unless hidden by business rules).
+1. **Identity Phase**: User authenticates (Email/Google) → Firestore spins up a secure profile instance.
+2. **Publishing**: User launches a skill post → System indexes it into the Discover/Search matrix.
+3. **Connection**: Peer initiates a Swap Request → Bi-directional status monitors activate.
+4. **Engagement**: Request Accepted → Dedicated, secure chat channel unlocks.
+5. **Focus Mode**: First message transmitted → Original post enters stealth mode (removed from Discover).
 
-3) Another user sends a swap request → requester/owner can see status updates.
+---
 
-4) When a request is accepted → chat becomes available for that swap.
-
-5) First message in an accepted swap can mark the related post as not discoverable (so it disappears from Discover).
-
-## Notes
-
-- This repository intentionally keeps documentation in a single file (this `README.md`).
-
-Status: production-ready
+<div align="center">
+  <i>Conceptualized, Designed, and Engineered by <b>Srithesh</b></i> 🚀
+</div>
