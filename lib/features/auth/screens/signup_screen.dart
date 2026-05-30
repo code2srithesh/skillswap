@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/premium_background.dart';
+import '../../../core/animations.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -15,7 +17,7 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final _nameController = TextEditingController();
-  final _usernameController = TextEditingController(); // Added Username
+  final _usernameController = TextEditingController();
   final _roleController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -23,7 +25,6 @@ class _SignupScreenState extends State<SignupScreen> {
 
   bool _isLoading = false;
 
-  // Auto-fill VIT domain
   @override
   void initState() {
     super.initState();
@@ -54,15 +55,12 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Create User
       User? user = await _authService.signUp(
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
 
       if (user != null) {
-        // 2. Create Database Profile
-        // IMPORTANT: Use set() with merge: true to avoid crashes
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'uid': user.uid,
           'name': _nameController.text.trim(),
@@ -74,7 +72,6 @@ class _SignupScreenState extends State<SignupScreen> {
           'bio': 'Student at VIT-AP',
         }, SetOptions(merge: true));
 
-        // 3. Show Verification Dialog instead of going Home
         if (mounted) {
           showDialog(
             context: context,
@@ -90,8 +87,8 @@ class _SignupScreenState extends State<SignupScreen> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context); // Close dialog
-                    Navigator.pop(context); // Go back to Login Screen
+                    Navigator.pop(context);
+                    Navigator.pop(context);
                   },
                   child: Text("OK, I'll Check", style: GoogleFonts.outfit(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
                 )
@@ -110,8 +107,9 @@ class _SignupScreenState extends State<SignupScreen> {
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: Colors.red,
+      backgroundColor: Colors.red.shade400,
       behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ));
   }
 
@@ -120,41 +118,68 @@ class _SignupScreenState extends State<SignupScreen> {
     return PremiumBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, leading: BackButton(color: Colors.white)),
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, leading: const BackButton(color: Colors.white)),
         body: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 450),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text("Create Account", style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text("Create Account", textAlign: TextAlign.center, style: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 8),
+                  Text("Join the student exchange community", textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 16, color: Colors.grey.shade400)),
                   const SizedBox(height: 32),
                   
-                  _buildField("Full Name", Icons.person, _nameController),
-                  const SizedBox(height: 16),
-                  _buildField("Username", Icons.alternate_email, _usernameController),
-                  const SizedBox(height: 16),
-                  _buildField("Year & Branch", Icons.school, _roleController),
-                  const SizedBox(height: 16),
-                  _buildField("VIT Email", Icons.email, _emailController),
-                  const SizedBox(height: 16),
-                  _buildField("Password", Icons.lock, _passwordController, isPass: true),
-                  
-                  const SizedBox(height: 32),
-                  
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleSignup,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A1F3A).withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: AppTheme.primaryColor.withOpacity(0.15), width: 1.5),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildField("Full Name", Icons.person_rounded, _nameController),
+                            const SizedBox(height: 16),
+                            _buildField("Username", Icons.alternate_email, _usernameController),
+                            const SizedBox(height: 16),
+                            _buildField("Year & Branch", Icons.school_rounded, _roleController),
+                            const SizedBox(height: 16),
+                            _buildField("VIT Email", Icons.email, _emailController),
+                            const SizedBox(height: 16),
+                            _buildField("Password", Icons.lock_rounded, _passwordController, isPass: true),
+                            const SizedBox(height: 24),
+                            
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: BouncyTap(
+                                onTap: _isLoading ? () {} : _handleSignup,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: AppTheme.accentGradientBrush,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [BoxShadow(color: AppTheme.primaryColor.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8))],
+                                  ),
+                                  child: Center(
+                                    child: _isLoading 
+                                      ? const CircularProgressIndicator(color: Colors.white)
+                                      : Text("Sign Up", style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: _isLoading 
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text("Sign Up", style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                     ),
                   ),
                 ],
@@ -170,14 +195,13 @@ class _SignupScreenState extends State<SignupScreen> {
     return TextField(
       controller: controller,
       obscureText: isPass,
-      style: const TextStyle(color: Colors.white),
+      style: GoogleFonts.inter(color: Colors.white),
       decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade500),
+        labelText: hint,
+        labelStyle: TextStyle(color: Colors.grey.shade400),
         prefixIcon: Icon(icon, color: AppTheme.primaryColor),
-        filled: true,
-        fillColor: Colors.black.withOpacity(0.3),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primaryColor)),
       ),
     );
   }

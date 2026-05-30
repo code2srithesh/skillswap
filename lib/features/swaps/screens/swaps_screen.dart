@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../messaging/screens/chat_screen.dart';
 import '../../messaging/services/messaging_service.dart';
 import '../../../core/theme.dart';
+import '../../../core/widgets/premium_background.dart';
+import '../../../core/widgets/glass_card.dart';
+import '../../../core/animations.dart';
 
 class SwapsScreen extends StatefulWidget {
   const SwapsScreen({super.key});
@@ -31,7 +35,6 @@ class _SwapsScreenState extends State<SwapsScreen> {
 
   Stream<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
   _myActiveAndHistory() {
-    // Avoid OR queries: query by participants and filter client-side.
     return _db
         .collection('requests')
         .where('participants', arrayContains: _uid)
@@ -166,231 +169,317 @@ class _SwapsScreenState extends State<SwapsScreen> {
 
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
-        appBar: AppBar(
-          title: Text(
-            'My Swaps',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-          ),
+      child: PremiumBackground(
+        child: Scaffold(
           backgroundColor: Colors.transparent,
-          elevation: 0,
-          bottom: TabBar(
-            labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            tabs: const [
-              Tab(text: 'Incoming'),
-              Tab(text: 'Active & History'),
-            ],
+          appBar: AppBar(
+            title: Text(
+              'My Swaps',
+              style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            bottom: TabBar(
+              dividerColor: Colors.transparent,
+              indicatorColor: AppTheme.primaryColor,
+              labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+              unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 14),
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.grey.shade400,
+              tabs: const [
+                Tab(text: 'Incoming'),
+                Tab(text: 'Active & History'),
+              ],
+            ),
           ),
-        ),
-        body: TabBarView(
-          children: [
-            // Incoming
-            StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
-              stream: _incomingPending(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Unable to load requests'));
-                }
+          body: TabBarView(
+            children: [
+              // Incoming
+              StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
+                stream: _incomingPending(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Unable to load requests', style: GoogleFonts.inter(color: Colors.white)));
+                  }
 
-                final docs = snapshot.data ?? [];
-                if (docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No pending requests',
-                      style: GoogleFonts.inter(color: Colors.grey.shade600),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final doc = docs[index];
-                    final data = doc.data();
-                    final requesterName =
-                        (data['requesterName'] ??
-                                data['senderName'] ??
-                                'Student')
-                            .toString();
-                    final message = (data['message'] ?? '').toString();
-
-                    return Card(
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: Colors.grey.shade300),
+                  final docs = snapshot.data ?? [];
+                  if (docs.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No pending requests',
+                        style: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 15),
                       ),
-                      child: ListTile(
-                        title: Text(
-                          requesterName,
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final doc = docs[index];
+                      final data = doc.data();
+                      final requesterName =
+                          (data['requesterName'] ??
+                                  data['senderName'] ??
+                                  'Student')
+                              .toString();
+                      final message = (data['message'] ?? '').toString();
+
+                      return StaggeredItem(
+                        index: index,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: GlassCard(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                PremiumAvatar(name: requesterName, size: 44),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        requesterName,
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        message.isEmpty ? 'No message' : message,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    BouncyTap(
+                                      onTap: () => _rejectRequest(doc),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red.withOpacity(0.15),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.close_rounded,
+                                          color: Colors.red,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    BouncyTap(
+                                      onTap: () => _acceptRequest(doc),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.15),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.check_rounded,
+                                          color: Colors.green,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        subtitle: Text(
-                          message.isEmpty ? 'No message' : message,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.close_rounded,
-                                color: Colors.red,
-                              ),
-                              onPressed: () => _rejectRequest(doc),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.check_rounded,
-                                color: Colors.green,
-                              ),
-                              onPressed: () => _acceptRequest(doc),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-
-            // Active & History
-            StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
-              stream: _myActiveAndHistory(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Unable to load swaps'));
-                }
-
-                final all = snapshot.data ?? [];
-                final docs = all.where((d) {
-                  final s = (d.data()['status'] ?? 'pending').toString();
-                  return s == 'accepted' || s == 'completed' || s == 'rejected';
-                }).toList();
-
-                if (docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No active swaps yet',
-                      style: GoogleFonts.inter(color: Colors.grey.shade600),
-                    ),
+                      );
+                    },
                   );
-                }
+                },
+              ),
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final doc = docs[index];
-                    final data = doc.data();
-                    final status = (data['status'] ?? 'pending').toString();
+              // Active & History
+              StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
+                stream: _myActiveAndHistory(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Unable to load swaps', style: GoogleFonts.inter(color: Colors.white)));
+                  }
 
-                    final senderUid =
-                        (data['senderUid'] ?? data['requesterId'] ?? '')
-                            .toString();
+                  final all = snapshot.data ?? [];
+                  final docs = all.where((d) {
+                    final s = (d.data()['status'] ?? 'pending').toString();
+                    return s == 'accepted' || s == 'completed' || s == 'rejected';
+                  }).toList();
 
-                    final requesterName =
-                        (data['requesterName'] ??
-                                data['senderName'] ??
-                                'Student')
-                            .toString();
-                    final postOwnerName = (data['postOwnerName'] ?? 'Student')
-                        .toString();
-
-                    final otherName = senderUid == _uid
-                        ? postOwnerName
-                        : requesterName;
-                    final message = (data['message'] ?? '').toString();
-
-                    Color chipBg;
-                    Color chipFg;
-                    if (status == 'accepted') {
-                      chipBg = Colors.green.shade100;
-                      chipFg = Colors.green.shade800;
-                    } else if (status == 'completed') {
-                      chipBg = Colors.blue.shade100;
-                      chipFg = Colors.blue.shade800;
-                    } else {
-                      chipBg = Colors.red.shade100;
-                      chipFg = Colors.red.shade800;
-                    }
-
-                    return Card(
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      child: ListTile(
-                        title: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                otherName,
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: chipBg,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                status.toUpperCase(),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: chipFg,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        subtitle: Text(
-                          message.isEmpty ? '—' : message,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.chat_bubble_rounded),
-                              onPressed: () => _openChat(doc),
-                            ),
-                            if (status == 'accepted')
-                              IconButton(
-                                icon: const Icon(Icons.verified_rounded),
-                                onPressed: () => _markCompleted(doc),
-                                tooltip: 'Mark completed',
-                              ),
-                          ],
-                        ),
+                  if (docs.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No active swaps yet',
+                        style: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 15),
                       ),
                     );
-                  },
-                );
-              },
-            ),
-          ],
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final doc = docs[index];
+                      final data = doc.data();
+                      final status = (data['status'] ?? 'pending').toString();
+
+                      final senderUid =
+                          (data['senderUid'] ?? data['requesterId'] ?? '')
+                              .toString();
+
+                      final requesterName =
+                          (data['requesterName'] ??
+                                  data['senderName'] ??
+                                  'Student')
+                              .toString();
+                      final postOwnerName = (data['postOwnerName'] ?? 'Student')
+                          .toString();
+
+                      final otherName = senderUid == _uid
+                          ? postOwnerName
+                          : requesterName;
+                      final message = (data['message'] ?? '').toString();
+
+                      Color chipBg;
+                      Color chipFg;
+                      if (status == 'accepted') {
+                        chipBg = Colors.green.withOpacity(0.15);
+                        chipFg = Colors.green.shade400;
+                      } else if (status == 'completed') {
+                        chipBg = Colors.blue.withOpacity(0.15);
+                        chipFg = Colors.blue.shade400;
+                      } else {
+                        chipBg = Colors.red.withOpacity(0.15);
+                        chipFg = Colors.red.shade400;
+                      }
+
+                      return StaggeredItem(
+                        index: index,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: GlassCard(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                PremiumAvatar(name: otherName, size: 44),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              otherName,
+                                              style: GoogleFonts.poppins(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 15,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: chipBg,
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: chipFg.withOpacity(0.2)),
+                                            ),
+                                            child: Text(
+                                              status.toUpperCase(),
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: chipFg,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        message.isEmpty ? '—' : message,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    BouncyTap(
+                                      onTap: () => _openChat(doc),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.05),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.chat_bubble_rounded,
+                                          color: AppTheme.primaryColor,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    if (status == 'accepted') ...[
+                                      const SizedBox(width: 10),
+                                      BouncyTap(
+                                        onTap: () => _markCompleted(doc),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.withOpacity(0.15),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.verified_rounded,
+                                            color: Colors.blue,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,8 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../../../core/theme.dart';
 import '../../../core/animations.dart';
+import '../../../core/widgets/premium_background.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -21,13 +23,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   void initState() {
     super.initState();
-    // Add listener to auto-complete email domain
     _emailController.addListener(_autoCompleteEmail);
   }
 
   void _autoCompleteEmail() {
     String text = _emailController.text;
-    // Only auto-complete if @ is typed and there's text before it
     if (text.contains('@') && !text.endsWith('@vitapstudent.ac.in')) {
       String localPart = text.split('@')[0];
       if (localPart.isNotEmpty) {
@@ -48,7 +48,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _handleForgotPassword() async {
-    // Clear previous error
     setState(() => _emailError = null);
 
     final email = _emailController.text.trim();
@@ -91,198 +90,198 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 450),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Logo
-                ScaleInAnimation(
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: AppTheme.accentGradientBrush,
-                    ),
-                    child: const Icon(
-                      Icons.lock_reset_rounded,
-                      size: 40,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                Text(
-                  _emailSent ? "Check Your Email" : "Reset Password",
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _emailSent
-                      ? "We've sent a password reset link to your email. Click the link to set a new password."
-                      : "Enter your VIT-AP email address and we'll send you a link to reset your password.",
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                if (!_emailSent) ...[
-                  // Email Field
-                  Text(
-                    'Email Address',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _emailController,
-                    enabled: !_isLoading,
-                    decoration: InputDecoration(
-                      labelText: "Enter your VIT-AP email",
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      errorText: _emailError,
-                      errorStyle: GoogleFonts.inter(
-                        color: Colors.red.shade600,
-                        fontSize: 12,
-                      ),
-                      hintStyle: GoogleFonts.inter(),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Send Button
-                  SizedBox(
-                    height: 48,
-                    child: _isLoading
-                        ? Center(
-                            child: CircularProgressIndicator(
-                              color: AppTheme.primaryColor,
-                            ),
-                          )
-                        : ElevatedButton(
-                            onPressed: _handleForgotPassword,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryColor,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(
-                              "Send Reset Link",
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                  ),
-                ] else ...[
-                  // Success State
+    return PremiumBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, leading: const BackButton(color: Colors.white)),
+        body: Center(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 450),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   ScaleInAnimation(
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.green.shade200),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.check_circle_rounded,
-                            size: 64,
-                            color: Colors.green.shade400,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            "Email Sent Successfully!",
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.green.shade700,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "Check your email for the reset link",
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: Colors.green.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  SizedBox(
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    child: Center(
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: AppTheme.accentGradientBrush,
+                          boxShadow: [
+                            BoxShadow(color: AppTheme.primaryColor.withOpacity(0.4), blurRadius: 30, offset: const Offset(0, 10)),
+                          ],
                         ),
-                      ),
-                      child: Text(
-                        "Back to Login",
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                        child: const Icon(
+                          Icons.lock_reset_rounded,
+                          size: 50,
                           color: Colors.white,
                         ),
                       ),
                     ),
                   ),
-                ],
+                  const SizedBox(height: 32),
+                  Text(
+                    _emailSent ? "Check Your Email" : "Reset Password",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _emailSent
+                        ? "We've sent a password reset link to your email. Click the link to set a new password."
+                        : "Enter your VIT-AP email address and we'll send you a link to reset your password.",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
 
-                const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A1F3A).withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: AppTheme.primaryColor.withOpacity(0.15), width: 1.5),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (!_emailSent) ...[
+                              TextField(
+                                controller: _emailController,
+                                enabled: !_isLoading,
+                                style: GoogleFonts.inter(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: "VIT-AP Email Address",
+                                  labelStyle: TextStyle(color: Colors.grey.shade400),
+                                  prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.primaryColor),
+                                  errorText: _emailError,
+                                  errorStyle: GoogleFonts.inter(
+                                    color: Colors.red.shade400,
+                                    fontSize: 12,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primaryColor)),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              
+                              SizedBox(
+                                height: 56,
+                                child: BouncyTap(
+                                  onTap: _isLoading ? () {} : _handleForgotPassword,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: AppTheme.accentGradientBrush,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [BoxShadow(color: AppTheme.primaryColor.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8))],
+                                    ),
+                                    child: Center(
+                                      child: _isLoading 
+                                        ? const CircularProgressIndicator(color: Colors.white)
+                                        : Text("Send Reset Link", style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ] else ...[
+                              ScaleInAnimation(
+                                child: Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle_rounded,
+                                        size: 64,
+                                        color: Colors.green,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        "Email Sent Successfully!",
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        "Check your email for the reset link",
+                                        style: GoogleFonts.inter(
+                                          fontSize: 14,
+                                          color: Colors.green.withOpacity(0.8),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
 
-                // Back to Login Link
-                if (!_emailSent)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Remember your password? ",
-                        style: GoogleFonts.inter(color: Colors.grey.shade600),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text(
-                          'Back to Login',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primaryColor,
-                          ),
+                              SizedBox(
+                                height: 56,
+                                child: BouncyTap(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: AppTheme.accentGradientBrush,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [BoxShadow(color: AppTheme.primaryColor.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8))],
+                                    ),
+                                    child: Center(
+                                      child: Text("Back to Login", style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-              ],
+                  
+                  const SizedBox(height: 32),
+                  
+                  if (!_emailSent)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Remember your password? ",
+                          style: GoogleFonts.inter(color: Colors.grey.shade400),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Text(
+                            "Back to Login",
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ),
         ),

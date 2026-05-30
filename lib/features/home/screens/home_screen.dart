@@ -159,7 +159,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final post = posts[index];
-                      return _buildGridCard(post, context);
+                      return StaggeredItem(
+                        index: index,
+                        child: _buildGridCard(post, context),
+                      );
                     },
                     childCount: posts.length,
                   ),
@@ -173,6 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildGridCard(PostModel post, BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GlassCard(
       onTap: () {
         Navigator.push(
@@ -189,12 +193,22 @@ class _HomeScreenState extends State<HomeScreen> {
             // Top Row: User
             Row(
               children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppTheme.primaryColor.withOpacity(0.2),
-                  child: Text(
-                    post.userName.isNotEmpty ? post.userName[0].toUpperCase() : "?",
-                    style: GoogleFonts.outfit(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppTheme.accentGradientBrush,
+                  ),
+                  child: Center(
+                    child: Text(
+                      post.userName.isNotEmpty ? post.userName[0].toUpperCase() : "?",
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -205,13 +219,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Text(
                         post.userName, 
-                        style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 15),
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w600, 
+                          fontSize: 15,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         post.role, 
-                        style: GoogleFonts.inter(fontSize: 11, color: Colors.grey),
+                        style: GoogleFonts.inter(
+                          fontSize: 11, 
+                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -224,9 +245,9 @@ class _HomeScreenState extends State<HomeScreen> {
             // Middle: Skills
             Column(
               children: [
-                _buildSkillRow("TEACHES", post.teachSkill, const Color(0xFF10B981)),
+                _buildSkillRow("TEACHES", post.teachSkill, const Color(0xFF10B981), isDark),
                 const SizedBox(height: 8),
-                _buildSkillRow("LEARNS", post.learnSkill, const Color(0xFF8B5CF6)),
+                _buildSkillRow("LEARNS", post.learnSkill, const Color(0xFF8B5CF6), isDark),
               ],
             ),
           ],
@@ -235,25 +256,35 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSkillRow(String label, String skill, Color color) {
+  Widget _buildSkillRow(String label, String skill, Color color, bool isDark) {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(4),
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: color.withOpacity(0.3), width: 1),
           ),
           child: Text(
             label, 
-            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: color)
+            style: GoogleFonts.outfit(
+              fontSize: 9, 
+              fontWeight: FontWeight.w800, 
+              color: isDark ? color.withOpacity(0.9) : color,
+              letterSpacing: 0.5,
+            )
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         Expanded(
           child: Text(
             skill, 
-            style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13),
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w600, 
+              fontSize: 14,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -370,12 +401,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildPremiumHeader(bool isDark) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Discover", style: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold)),
-          Text("Find your skill match", style: GoogleFonts.inter(color: Colors.grey)),
+          ShaderMask(
+            shaderCallback: (bounds) => AppTheme.accentGradientBrush.createShader(
+              Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+            ),
+            child: Text(
+              "Discover Swaps",
+              style: GoogleFonts.outfit(
+                fontSize: 38,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Connect with top minds & barter your expertise seamlessly.",
+            style: GoogleFonts.inter(
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
